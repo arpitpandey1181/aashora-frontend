@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+
+  /* Card & Surface Tokens */
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+
+  /* Global Button Theme Tokens (Light Mode) */
+  --btn-outline-bg: #ffffff;
+  --btn-outline-text: #0f172a;
+  --btn-outline-border: #cbd5e1;
+  --btn-outline-hover-bg: #f1f5f9;
+
+  --btn-ghost-bg: transparent;
+  --btn-ghost-text: #334155;
+  --btn-ghost-hover-bg: #f1f5f9;
+}
+
+.dark {
+  --background: #090d16;
+  --foreground: #f8fafc;
+
+  /* Card & Surface Tokens */
+  --card-bg: #0f172a;
+  --card-border: #1e293b;
+
+  /* Global High-Contrast Button Theme Tokens (Dark Mode) */
+  --btn-outline-bg: #1e293b;
+  --btn-outline-text: #f8fafc;
+  --btn-outline-border: #334155;
+  --btn-outline-hover-bg: #334155;
+
+  --btn-ghost-bg: transparent;
+  --btn-ghost-text: #e2e8f0;
+  --btn-ghost-hover-bg: #1e293b;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+/* Global Responsive Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0d9488;
+}
+
+/* Global High-Contrast Utilities */
+@layer components {
+  .btn-contrast-outline {
+    background-color: var(--btn-outline-bg);
+    color: var(--btn-outline-text) !important;
+    border: 1px solid var(--btn-outline-border);
+    transition: all 0.15s ease-in-out;
+  }
+
+  .btn-contrast-outline:hover {
+    background-color: var(--btn-outline-hover-bg);
+  }
+
+  .btn-contrast-ghost {
+    background-color: var(--btn-ghost-bg);
+    color: var(--btn-ghost-text) !important;
+    transition: all 0.15s ease-in-out;
+  }
+
+  .btn-contrast-ghost:hover {
+    background-color: var(--btn-ghost-hover-bg);
+  }
+}

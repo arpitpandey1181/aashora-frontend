@@ -1,0 +1,32 @@
+export interface PatOpdVisitMainModel {
+  opdvisitid: number;
+  gsspatid: number;
+  billno?: string;
+  receiptno?: string;
+  visitid?: string;
+  isconsult?: number;
+  isinvest?: number;
+  isproced?: number;
+  ispackage?: number;
+  iscash?: number;
+  cashamt?: number;
+  iscreditcard?: number;
+  cardamt?: number;
+  ischeque?: number;
+  chequeamt?: number;
+  isbank?: number;
+  bankamt?: number;
+  isdiscountonbill?: number;
+  discounttype?: string;
+  discountpercent?: number;
+  discountamt?: number;
+  totalreceiveamt?: number;
+  duerefid?: number;
+  isfinalduecleared?: number;
+  finalduecleareddate?: string;
+  financialyear?: number;
+  empid?: string;
+  locationid?: number;
+  departmentid: number;
+  doctorid: number;
+}
