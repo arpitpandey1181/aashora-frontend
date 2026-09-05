@@ -1,11 +1,18 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Bell, User, Menu } from 'lucide-react';
 import { useClinicStore } from '@/store/clinic-store';
 
 export function Header({ onMenuClick }) {
   const { currentUser } = useClinicStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const doctorName = currentUser?.doctorName || 'Dr. Arpit Pandey';
   const role = currentUser?.role || 'Consultant Physician';
 
@@ -37,12 +44,18 @@ export function Header({ onMenuClick }) {
             <User className="w-4 h-4" />
           </div>
           <div className="text-left hidden md:block">
-            <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 leading-none">
-              {doctorName.toUpperCase()}
-            </p>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-              {role}
-            </span>
+            {mounted ? (
+              <>
+                <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 leading-none">
+                  {doctorName.toUpperCase()}
+                </p>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                  {role}
+                </span>
+              </>
+            ) : (
+              <div className="h-6 w-28 bg-slate-200 dark:bg-slate-800 animate-pulse rounded" />
+            )}
           </div>
         </div>
       </div>

@@ -22,17 +22,19 @@ export default function PrescriptionsListPage() {
   const checkedInPatientsList = (patients || [])
     .filter((p) => p.checkInStatus === 'Checked-In')
     .filter((p) => {
+      if (currentUser?.username === 'admin') return true;
       const docRef = (p.doctorRef || '').toLowerCase();
       const curDocName = (currentUser?.doctorName || '').toLowerCase();
       const curFirstName = (currentUser?.doctorName || '').replace(/^dr\.\s*/i, '').trim().split(' ')[0].toLowerCase();
-      return !p.doctorRef || docRef.includes(curDocName) || docRef.includes(curFirstName);
+      return !p.doctorRef || docRef.includes(curDocName) || docRef.includes(curFirstName) || curDocName.includes(docRef);
     });
 
   const issuedRxList = (prescriptions || []).filter((rx) => {
+    if (currentUser?.username === 'admin') return true;
     const rxDoc = (rx.doctor || '').toLowerCase();
     const curDocName = (currentUser?.doctorName || '').toLowerCase();
     const curFirstName = (currentUser?.doctorName || '').replace(/^dr\.\s*/i, '').trim().split(' ')[0].toLowerCase();
-    return !rx.doctor || rxDoc.includes(curDocName) || rxDoc.includes(curFirstName);
+    return !rx.doctor || rxDoc.includes(curDocName) || rxDoc.includes(curFirstName) || curDocName.includes(rxDoc);
   });
 
   const filteredCheckedIn = checkedInPatientsList.filter(
@@ -64,13 +66,10 @@ export default function PrescriptionsListPage() {
       {/* Top Header & Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-            <FileText className="w-6 h-6 text-teal-600 dark:text-teal-400" />
-            E-Prescription Records (Rx)
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-teal-600 dark:text-teal-400" />
+            Prescriptions (Rx)
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Manage Doctor Consultation Queue & Issued E-Prescriptions
-          </p>
         </div>
 
         <Link href="/prescriptions/create">
@@ -139,36 +138,38 @@ export default function PrescriptionsListPage() {
                 <p className="text-[11px] text-slate-400">Go to Front Desk Inbox to Check-In waiting counter patients.</p>
               </div>
             ) : (
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-100 dark:bg-slate-800 uppercase font-bold text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
-                  <tr>
-                    <th className="p-3">Registration ID</th>
-                    <th className="p-3">Patient Name</th>
-                    <th className="p-3">Mobile No</th>
-                    <th className="p-3">Check-In Time</th>
-                    <th className="p-3">Source</th>
-                    <th className="p-3 text-right">Consultation Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {mounted && filteredCheckedIn.map((p) => (
-                    <tr key={p.gsspatid} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                      <td className="p-3 font-bold font-mono text-teal-600 dark:text-teal-400" suppressHydrationWarning>{p.regId || `REG-${p.gsspatid}`}</td>
-                      <td className="p-3 font-bold text-slate-900 dark:text-white" suppressHydrationWarning>{p.title} {p.fullname} ({p.gender}, {p.age}Y)</td>
-                      <td className="p-3 font-mono text-slate-600 dark:text-slate-300" suppressHydrationWarning>{p.mobileno}</td>
-                      <td className="p-3 font-mono font-semibold text-emerald-600 dark:text-emerald-400" suppressHydrationWarning>{p.checkInTime || 'Live'}</td>
-                      <td className="p-3 font-semibold text-purple-700 dark:text-purple-300" suppressHydrationWarning>{p.source || 'Counter'}</td>
-                      <td className="p-3 text-right">
-                        <Link href={`/prescriptions/create?patId=${p.gsspatid}`}>
-                          <Button size="sm" className="h-8 text-xs font-bold rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-sm">
-                            <Plus className="w-3.5 h-3.5 mr-1" /> Create Rx
-                          </Button>
-                        </Link>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs min-w-[600px]">
+                  <thead className="bg-slate-100 dark:bg-slate-800 uppercase font-bold text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
+                    <tr>
+                      <th className="p-3">Registration ID</th>
+                      <th className="p-3">Patient Name</th>
+                      <th className="p-3">Mobile No</th>
+                      <th className="p-3">Check-In Time</th>
+                      <th className="p-3">Source</th>
+                      <th className="p-3 text-right">Consultation Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                    {mounted && filteredCheckedIn.map((p) => (
+                      <tr key={p.gsspatid} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                        <td className="p-3 font-bold font-mono text-teal-600 dark:text-teal-400" suppressHydrationWarning>{p.regId || `REG-${p.gsspatid}`}</td>
+                        <td className="p-3 font-bold text-slate-900 dark:text-white" suppressHydrationWarning>{p.title} {p.fullname} ({p.gender}, {p.age}Y)</td>
+                        <td className="p-3 font-mono text-slate-600 dark:text-slate-300" suppressHydrationWarning>{p.mobileno}</td>
+                        <td className="p-3 font-mono font-semibold text-emerald-600 dark:text-emerald-400" suppressHydrationWarning>{p.checkInTime || 'Live'}</td>
+                        <td className="p-3 font-semibold text-purple-700 dark:text-purple-300" suppressHydrationWarning>{p.source || 'Counter'}</td>
+                        <td className="p-3 text-right">
+                          <Link href={`/prescriptions/create?patId=${p.gsspatid}`}>
+                            <Button size="sm" className="h-8 text-xs font-bold rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-sm">
+                              <Plus className="w-3.5 h-3.5 mr-1" /> Create Rx
+                            </Button>
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -203,21 +204,22 @@ export default function PrescriptionsListPage() {
                 <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No Prescriptions Issued Yet</p>
               </div>
             ) : (
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-100 dark:bg-slate-800 uppercase font-bold text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
-                  <tr>
-                    <th className="p-3">Rx Number</th>
-                    <th className="p-3">Patient Name</th>
-                    <th className="p-3">Prescribing Doctor</th>
-                    <th className="p-3">Medicines</th>
-                    <th className="p-3">Date</th>
-                    <th className="p-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {mounted && filteredIssuedRx.map((rx) => (
-                    <tr key={rx.rxNo} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                      <td className="p-3 font-bold font-mono text-teal-600 dark:text-teal-400" suppressHydrationWarning>{rx.rxNo}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs min-w-[600px]">
+                  <thead className="bg-slate-100 dark:bg-slate-800 uppercase font-bold text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
+                    <tr>
+                      <th className="p-3">Rx Number</th>
+                      <th className="p-3">Patient Name</th>
+                      <th className="p-3">Prescribing Doctor</th>
+                      <th className="p-3">Medicines</th>
+                      <th className="p-3">Date</th>
+                      <th className="p-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                    {mounted && filteredIssuedRx.map((rx) => (
+                      <tr key={rx.rxNo} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                        <td className="p-3 font-bold font-mono text-teal-600 dark:text-teal-400" suppressHydrationWarning>{rx.rxNo}</td>
                       <td className="p-3 font-bold text-slate-900 dark:text-white" suppressHydrationWarning>{rx.fullname} ({rx.ageGender})</td>
                       <td className="p-3 text-slate-600 dark:text-slate-300" suppressHydrationWarning>{rx.doctor}</td>
                       <td className="p-3 font-mono font-bold text-purple-700 dark:text-purple-300" suppressHydrationWarning>{(rx.medicines || []).length} Medicines</td>
@@ -250,6 +252,7 @@ export default function PrescriptionsListPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </CardContent>
         </Card>

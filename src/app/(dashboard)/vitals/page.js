@@ -73,13 +73,10 @@ export default function ClinicalVitalsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-            <Activity className="w-6 h-6 text-teal-600 dark:text-teal-400" />
-            Clinical Examination & Vital Data (`frmOPDDoctorExaminationVital`)
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-teal-600 dark:text-teal-400" />
+            Vitals Intake
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Configurable field control active (`vitals-config.js`)
-          </p>
         </div>
         <div className="flex gap-2">
           <Button size="sm" onClick={handleSaveVitals} className="bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-md">

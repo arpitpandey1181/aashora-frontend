@@ -13,14 +13,17 @@ const TITLE_OPTIONS = ['Mr.', 'Mrs.', 'Miss', 'Master', 'Dr.', 'Prof.'];
 const SHIFT_OPTIONS = ['Morning', 'Afternoon', 'Evening'];
 
 // Helper to generate dynamic time slots based on shift timing & duration
-function generateTimeSlots(shift, durationMinutes = 15) {
-  const shiftRanges = {
-    Morning: { start: '09:00', end: '13:00' },
-    Afternoon: { start: '14:00', end: '17:00' },
-    Evening: { start: '18:00', end: '21:00' },
-  };
+function generateTimeSlots(shift, durationMinutes = 15, timeSlotSettings) {
+  const masterShifts = timeSlotSettings?.shifts || {};
+  const shiftConfig = masterShifts[shift] || {
+    Morning: { start: '09:00', end: '13:00', enabled: true },
+    Afternoon: { start: '14:00', end: '17:00', enabled: true },
+    Evening: { start: '18:00', end: '21:00', enabled: true },
+  }[shift];
 
-  const range = shiftRanges[shift] || shiftRanges.Morning;
+  if (shiftConfig && shiftConfig.enabled === false) return [];
+
+  const range = { start: shiftConfig?.start || '09:00', end: shiftConfig?.end || '13:00' };
   const [startH, startM] = range.start.split(':').map(Number);
   const [endH, endM] = range.end.split(':').map(Number);
 
@@ -32,7 +35,14 @@ function generateTimeSlots(shift, durationMinutes = 15) {
 
   const slots = [];
   while (current < end) {
-    const timeStr = current.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    let hours = current.getHours();
+    const minutes = current.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const strHours = hours < 10 ? '0' + hours : hours;
+    const strMinutes = minutes < 10 ? '0' + minutes : minutes;
+    const timeStr = `${strHours}:${strMinutes} ${ampm}`;
     slots.push(timeStr);
     current.setMinutes(current.getMinutes() + durationMinutes);
   }
@@ -50,9 +60,10 @@ function checkIsPastSlot(slotStr, appointmentDate) {
 
   const [time, modifier] = parts;
   let [hours, minutes] = time.split(':').map(Number);
+  const modUpper = (modifier || '').toUpperCase();
 
-  if (modifier === 'PM' && hours < 12) hours += 12;
-  if (modifier === 'AM' && hours === 12) hours = 0;
+  if (modUpper === 'PM' && hours < 12) hours += 12;
+  if (modUpper === 'AM' && hours === 12) hours = 0;
 
   const slotTime = new Date();
   slotTime.setHours(hours, minutes, 0, 0);
@@ -69,17 +80,37 @@ export default function BookAppointmentPage() {
     setMounted(true);
   }, []);
 
-  // Mode: 'new' vs 'registered'
-  const [patientType, setPatientType] = useState('new'); // 'new' | 'registered'
+  // Mode: 'registered' default for Registration -> Appointment Slot Allocation workflow
+  const [patientType, setPatientType] = useState('registered'); // 'registered' | 'new'
+
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlPatId = params.get('patId');
+      if (urlPatId && patients && patients.length > 0) {
+        setPatientType('registered');
+        const patObj = patients.find((p) => p.gsspatid.toString() === urlPatId.toString());
+        if (patObj) {
+          handleSelectRegisteredPatient(urlPatId);
+          setRegSearchTerm(`${patObj.fullname} (${patObj.regId || `REG-${patObj.gsspatid}`})`);
+        }
+      }
+    }
+  }, [patients]);
 
   // Already Registered Search & Selection
   const [regSearchTerm, setRegSearchTerm] = useState('');
+  const [showRegDropdown, setShowRegDropdown] = useState(false);
   const [selectedRegId, setSelectedRegId] = useState('');
   const [visitType, setVisitType] = useState('Follow-up'); // 'Follow-up' | 'Re-visit'
 
   // Demographics (New Patient)
   const [title, setTitle] = useState('Mr.');
-  const [fullname, setFullname] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const fullname = [firstName, middleName, lastName].filter(Boolean).join(' ').trim();
   const [mobileno, setMobileno] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('Male');
@@ -104,9 +135,9 @@ export default function BookAppointmentPage() {
   const slotDuration = timeSlotSettings?.slotDuration || 15;
   
   // 1. ALL SHIFTS TOTAL CAPACITY (Morning + Afternoon + Evening)
-  const morningSlots = generateTimeSlots('Morning', slotDuration);
-  const afternoonSlots = generateTimeSlots('Afternoon', slotDuration);
-  const eveningSlots = generateTimeSlots('Evening', slotDuration);
+  const morningSlots = generateTimeSlots('Morning', slotDuration, timeSlotSettings);
+  const afternoonSlots = generateTimeSlots('Afternoon', slotDuration, timeSlotSettings);
+  const eveningSlots = generateTimeSlots('Evening', slotDuration, timeSlotSettings);
   
   const allShiftsTotalSlotsCount = morningSlots.length + afternoonSlots.length + eveningSlots.length;
 
@@ -120,7 +151,7 @@ export default function BookAppointmentPage() {
   const allShiftsAvailableCount = Math.max(0, allShiftsTotalSlotsCount - allShiftsBookedCount);
 
   // 3. CURRENT SHIFT SPECIFIC SLOTS & BOOKINGS (Shift level)
-  const currentShiftSlots = generateTimeSlots(selectedShift, slotDuration);
+  const currentShiftSlots = generateTimeSlots(selectedShift, slotDuration, timeSlotSettings);
   const currentShiftBookedApps = (appointments || []).filter(
     (a) =>
       a.doctor === doctor &&
@@ -138,16 +169,33 @@ export default function BookAppointmentPage() {
     const patObj = (patients || []).find((p) => p.gsspatid.toString() === patId.toString());
     if (patObj) {
       setTitle(patObj.title || 'Mr.');
-      setFullname(patObj.fullname || '');
+      const parts = (patObj.fullname || '').trim().split(/\s+/).filter(Boolean);
+      setFirstName(parts[0] || '');
+      setMiddleName(parts.length > 2 ? parts.slice(1, -1).join(' ') : '');
+      setLastName(parts.length > 1 ? parts[parts.length - 1] : '');
       setMobileno(patObj.mobileno || '');
       setAge(patObj.age ? patObj.age.toString() : '');
       setGender(patObj.gender || 'Male');
+      if (patObj.doctorRef) {
+        setDoctor(patObj.doctorRef);
+      }
       toast.success(`Selected registered patient ${patObj.fullname} (${patObj.regId || `REG-${patObj.gsspatid}`})`);
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (patientType === 'new') {
+      if (!firstName.trim()) {
+        toast.error('First Name is required!');
+        return;
+      }
+      if (!lastName.trim()) {
+        toast.error('Last Name is required!');
+        return;
+      }
+    }
 
     // Global 10-Digit Mobile Validation
     const mobileRegex = /^[6-9]\d{9}$/;
@@ -194,15 +242,10 @@ export default function BookAppointmentPage() {
           <Button variant="outline" size="sm" onClick={() => router.back()} className="rounded-xl font-bold">
             <ArrowLeft className="w-4 h-4 mr-1" /> Back
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-              <Calendar className="w-6 h-6 text-teal-600 dark:text-teal-400" />
-              Book Consultation Appointment
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Dynamic Shift & Time Slot Booking Engine connected to Clinic Master Settings
-            </p>
-          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-teal-600 dark:text-teal-400" />
+            Book Appointment
+          </h1>
         </div>
 
         {/* 3 Ultra-Compact Reduced-Width Metric Boxes (Total Slots, Booked Slots, Available Slots) */}
@@ -295,45 +338,100 @@ export default function BookAppointmentPage() {
           {/* Already Registered Patient Search System */}
           {patientType === 'registered' && (
             <div className="p-3 rounded-xl bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900 space-y-3 mt-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                
+                {/* 1. SELECT REGISTERED PATIENT DROPDOWN */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-semibold uppercase text-purple-900 dark:text-purple-300">
-                    Search Registered Patient *
+                    Select Registered Patient *
+                  </label>
+                  <select
+                    value={selectedRegId}
+                    onChange={(e) => {
+                      const pId = e.target.value;
+                      handleSelectRegisteredPatient(pId);
+                      if (pId) {
+                        const pat = (patients || []).find((p) => p.gsspatid.toString() === pId.toString());
+                        if (pat) setRegSearchTerm(`${pat.fullname} (${pat.regId || `REG-${pat.gsspatid}`})`);
+                      }
+                    }}
+                    className="w-full h-9 rounded-xl border border-purple-300 dark:border-purple-800 bg-white dark:bg-slate-900 text-xs p-2 font-extrabold text-purple-900 dark:text-purple-100"
+                  >
+                    <option value="">-- Choose Registered Patient ({mounted ? patients.length : 0}) --</option>
+                    {mounted && (patients || []).map((p) => (
+                      <option key={p.gsspatid} value={p.gsspatid}>
+                        {p.regId || `REG-${p.gsspatid}`} - {p.title} {p.fullname} ({p.mobileno})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 2. SEARCH REGISTERED PATIENT */}
+                <div className="space-y-1 relative">
+                  <label className="text-[11px] font-semibold uppercase text-purple-900 dark:text-purple-300">
+                    Search Registered Patient
                   </label>
                   <div className="relative">
                     <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
-                      placeholder="Search Reg ID, Name, Mobile..."
+                      placeholder="Type Reg ID, Name, or Mobile..."
                       value={regSearchTerm}
-                      onChange={(e) => setRegSearchTerm(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-purple-300 dark:border-purple-800 text-xs bg-white dark:bg-slate-900 font-medium"
+                      onChange={(e) => {
+                        setRegSearchTerm(e.target.value);
+                        setShowRegDropdown(true);
+                      }}
+                      onFocus={() => setShowRegDropdown(true)}
+                      className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-purple-300 dark:border-purple-800 text-xs bg-white dark:bg-slate-900 font-bold text-slate-900 dark:text-slate-100"
                     />
                   </div>
-                  {mounted && (
-                    <select
-                      value={selectedRegId}
-                      onChange={(e) => handleSelectRegisteredPatient(e.target.value)}
-                      className="w-full h-9 rounded-xl border border-purple-300 dark:border-purple-800 bg-white dark:bg-slate-900 text-xs p-2 font-bold text-slate-900 dark:text-slate-100 mt-1"
-                      required
-                      suppressHydrationWarning
-                    >
-                      <option value="">-- Pick Registered Patient --</option>
-                      {(patients || [])
-                        .filter((p) =>
-                          (p.fullname || '').toLowerCase().includes(regSearchTerm.toLowerCase()) ||
-                          (p.mobileno || '').includes(regSearchTerm) ||
-                          (p.regId || '').toLowerCase().includes(regSearchTerm.toLowerCase())
-                        )
-                        .map((p) => (
-                          <option key={p.gsspatid} value={p.gsspatid}>
-                            {p.regId || `REG-${p.gsspatid}`} — {p.title} {p.fullname} ({p.mobileno})
-                          </option>
-                        ))}
-                    </select>
+
+                  {/* Auto Live Search Dropdown Popup */}
+                  {showRegDropdown && regSearchTerm.trim().length > 0 && (
+                    <div className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-800 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto p-1 space-y-1">
+                      <div className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                        <span>Matching Registered Patients (Click to Auto-Fill)</span>
+                        <button type="button" onClick={() => setShowRegDropdown(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+                      </div>
+
+                      {(patients || []).filter((p) =>
+                        (p.fullname || '').toLowerCase().includes(regSearchTerm.toLowerCase()) ||
+                        (p.mobileno || '').includes(regSearchTerm) ||
+                        (p.regId || '').toLowerCase().includes(regSearchTerm.toLowerCase())
+                      ).length > 0 ? (
+                        <div>
+                          {(patients || [])
+                            .filter((p) =>
+                              (p.fullname || '').toLowerCase().includes(regSearchTerm.toLowerCase()) ||
+                              (p.mobileno || '').includes(regSearchTerm) ||
+                              (p.regId || '').toLowerCase().includes(regSearchTerm.toLowerCase())
+                            )
+                            .map((p) => (
+                              <div
+                                key={p.gsspatid}
+                                onClick={() => {
+                                  handleSelectRegisteredPatient(p.gsspatid);
+                                  setRegSearchTerm(`${p.fullname} (${p.regId || `REG-${p.gsspatid}`})`);
+                                  setShowRegDropdown(false);
+                                }}
+                                className="px-2.5 py-1.5 hover:bg-purple-50 dark:hover:bg-purple-950/60 cursor-pointer rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between"
+                              >
+                                <div>
+                                  <span className="text-purple-700 font-mono mr-2">{p.regId || `REG-${p.gsspatid}`}</span>
+                                  <span>{p.title} {p.fullname}</span>
+                                </div>
+                                <span className="text-[10px] text-slate-500 font-mono">{p.mobileno}</span>
+                              </div>
+                            ))}
+                        </div>
+                      ) : (
+                        <div className="p-2 text-xs text-slate-400 text-center font-medium">No matching registered patients found</div>
+                      )}
+                    </div>
                   )}
                 </div>
 
+                {/* 3. VISIT TYPE */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-semibold uppercase text-purple-900 dark:text-purple-300">
                     Specify Visit Type *
@@ -355,33 +453,68 @@ export default function BookAppointmentPage() {
         {/* 2. Patient Demographics Card */}
         <Card className="p-4 border-l-4 border-l-teal-500 space-y-4">
           <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-teal-900 dark:text-teal-300 flex items-center gap-2">
-            <User className="w-4 h-4 text-teal-600" /> 2. Patient Demographics & Contact
+            <User className="w-4 h-4 text-teal-600" /> 2. Patient Details
           </CardTitle>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Title & Full Name */}
+            {/* Title, First Name, Middle Name, Last Name */}
             <div className="flex flex-col gap-1 lg:col-span-2">
-              <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400">
-                Title & Full Patient Name *
-              </label>
-              <div className="flex gap-2">
-                <select
-                  value={title}
-                  onChange={(e) => handleTitleChange(e.target.value)}
-                  className="w-24 h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2 font-extrabold text-slate-900 dark:text-slate-100"
-                >
-                  {TITLE_OPTIONS.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  placeholder="Enter full patient name..."
-                  value={fullname}
-                  onChange={(e) => setFullname(e.target.value)}
-                  className="flex-1 h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2.5 font-bold text-slate-900 dark:text-slate-100"
-                  required
-                />
+              <div className="flex gap-2 items-end">
+                <div className="flex flex-col gap-1 w-20 shrink-0">
+                  <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
+                    Title *
+                  </label>
+                  <select
+                    value={title}
+                    onChange={(e) => handleTitleChange(e.target.value)}
+                    className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-1.5 font-extrabold text-slate-900 dark:text-slate-100 w-full"
+                  >
+                    {TITLE_OPTIONS.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1 flex-1 min-w-0">
+                  <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
+                    First Name *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="First Name..."
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2 font-bold text-slate-900 dark:text-slate-100 w-full"
+                    required
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1 flex-1 min-w-0">
+                  <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
+                    Middle Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Middle Name..."
+                    value={middleName}
+                    onChange={(e) => setMiddleName(e.target.value)}
+                    className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2 font-bold text-slate-900 dark:text-slate-100 w-full"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1 flex-1 min-w-0">
+                  <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
+                    Last Name *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Last Name..."
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2 font-bold text-slate-900 dark:text-slate-100 w-full"
+                    required
+                  />
+                </div>
               </div>
             </div>
 
@@ -424,7 +557,7 @@ export default function BookAppointmentPage() {
         <Card className="p-4 border-l-4 border-l-rose-500 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
             <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-rose-900 dark:text-rose-300 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-rose-600" /> 3. Doctor Consultation & Dynamic Time Slot Master
+              <Clock className="w-4 h-4 text-rose-600" /> 3. Doctor & Time Slot
             </CardTitle>
 
             {/* Shift-Specific Real-Time Summary Count */}
@@ -486,9 +619,14 @@ export default function BookAppointmentPage() {
                 }}
                 className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2 font-bold text-slate-900 dark:text-slate-100"
               >
-                {SHIFT_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{s} Shift</option>
-                ))}
+                {SHIFT_OPTIONS.map((s) => {
+                  const isOff = timeSlotSettings?.shifts?.[s]?.enabled === false;
+                  return (
+                    <option key={s} value={s}>
+                      {s} Shift {isOff ? '(OFF / Inactive)' : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>
@@ -506,7 +644,17 @@ export default function BookAppointmentPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+            {currentShiftTotalCount === 0 ? (
+              <div className="p-4 text-center rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 space-y-1">
+                <p className="text-xs font-extrabold text-amber-800 dark:text-amber-300">
+                  🛑 {selectedShift} Shift is Currently Disabled / OFF in Clinic Master Settings
+                </p>
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                  To enable this shift, go to Clinic Settings Master and toggle {selectedShift} Shift to "ENABLED".
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
               {currentShiftSlots.map((slot) => {
                 const isBooked = currentShiftBookedApps.some((a) => a.slotTime === slot);
                 const isPast = checkIsPastSlot(slot, appointmentDate);
@@ -536,6 +684,7 @@ export default function BookAppointmentPage() {
                 );
               })}
             </div>
+            )}
           </div>
 
           <div className="flex justify-end pt-3">

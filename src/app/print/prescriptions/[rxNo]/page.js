@@ -11,7 +11,8 @@ export default function PrintPrescriptionStandalonePage() {
   const router = useRouter();
   const rxNo = params?.rxNo;
 
-  const { prescriptions, patients } = useClinicStore();
+  const { prescriptions, patients, prescriptionFieldControls } = useClinicStore();
+  const rxCtrl = prescriptionFieldControls || {};
   const [mounted, setMounted] = useState(false);
   const [selectedLang, setSelectedLang] = useState('English');
   const [translating, setTranslating] = useState(false);
@@ -123,7 +124,7 @@ export default function PrintPrescriptionStandalonePage() {
       <div className="space-y-4 text-xs font-sans text-slate-900">
         
         {/* Clinical Vitals Strip */}
-        {rxData.vitals && (
+        {rxCtrl.showPatientVitals !== false && rxData.vitals && (
           <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-4 sm:grid-cols-8 gap-2 text-center text-[11px] font-medium">
             <div>BP: <strong className="font-bold">{rxData.vitals.bp}</strong></div>
             <div>Pulse: <strong className="font-bold">{rxData.vitals.pulse}</strong></div>
@@ -137,64 +138,72 @@ export default function PrintPrescriptionStandalonePage() {
         )}
 
         {/* Dynamic Translated Chief Complaints & Clinical Diagnosis */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="p-2.5 rounded-xl border border-slate-200 space-y-1 bg-slate-50/50">
-            <span className="text-[10px] font-extrabold uppercase text-slate-500 flex items-center justify-between">
-              <span>Chief Complaints:</span>
-              {translating && <span className="text-[9px] text-teal-600 animate-pulse">Translating...</span>}
-            </span>
-            <p className="font-bold text-slate-800" suppressHydrationWarning>
-              {translatedContent.complaints || rxData.complaints}
-            </p>
-          </div>
+        {(rxCtrl.showComplaints !== false || rxCtrl.showDiagnosis !== false) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {rxCtrl.showComplaints !== false && (
+              <div className="p-2.5 rounded-xl border border-slate-200 space-y-1 bg-slate-50/50">
+                <span className="text-[10px] font-extrabold uppercase text-slate-500 flex items-center justify-between">
+                  <span>Chief Complaints:</span>
+                  {translating && <span className="text-[9px] text-teal-600 animate-pulse">Translating...</span>}
+                </span>
+                <p className="font-bold text-slate-800" suppressHydrationWarning>
+                  {translatedContent.complaints || rxData.complaints}
+                </p>
+              </div>
+            )}
 
-          <div className="p-2.5 rounded-xl border border-slate-200 space-y-1 bg-slate-50/50">
-            <span className="text-[10px] font-extrabold uppercase text-slate-500 flex items-center justify-between">
-              <span>Clinical Diagnosis:</span>
-              {translating && <span className="text-[9px] text-teal-600 animate-pulse">Translating...</span>}
-            </span>
-            <p className="font-bold text-purple-900" suppressHydrationWarning>
-              {translatedContent.diagnosis || rxData.diagnosis}
-            </p>
+            {rxCtrl.showDiagnosis !== false && (
+              <div className="p-2.5 rounded-xl border border-slate-200 space-y-1 bg-slate-50/50">
+                <span className="text-[10px] font-extrabold uppercase text-slate-500 flex items-center justify-between">
+                  <span>Clinical Diagnosis:</span>
+                  {translating && <span className="text-[9px] text-teal-600 animate-pulse">Translating...</span>}
+                </span>
+                <p className="font-bold text-purple-900" suppressHydrationWarning>
+                  {translatedContent.diagnosis || rxData.diagnosis}
+                </p>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Prescribed Medicines Roster with Dynamic Translated Timing & Duration */}
-        <div className="space-y-1.5 pt-1">
-          <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-teal-800 border-b border-slate-200 pb-1 flex items-center justify-between">
-            <span>Prescribed Medication Roster (Rx)</span>
-            {translating && <span className="text-[10px] text-teal-600 font-semibold animate-pulse">Translating Timing & Duration...</span>}
-          </h4>
-          <table className="w-full text-left border border-slate-200 rounded-xl overflow-hidden">
-            <thead className="bg-slate-100 uppercase text-[10px] font-bold text-slate-700 border-b border-slate-200">
-              <tr>
-                <th className="p-2">#</th>
-                <th className="p-2">Medicine Name & Formulation</th>
-                <th className="p-2 text-center">Dose</th>
-                <th className="p-2 text-center">Timing</th>
-                <th className="p-2 text-center">Duration</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {(translatedContent.medicines.length > 0 ? translatedContent.medicines : rxData.medicines || []).map((m, idx) => (
-                <tr key={idx}>
-                  <td className="p-2 font-bold">{idx + 1}</td>
-                  <td className="p-2 font-bold text-slate-900" suppressHydrationWarning>{m.name}</td>
-                  <td className="p-2 text-center font-mono font-bold text-teal-700" suppressHydrationWarning>{m.dosage}</td>
-                  <td className="p-2 text-center font-bold text-slate-800" suppressHydrationWarning>
-                    {m.timingTranslated || m.timing}
-                  </td>
-                  <td className="p-2 text-center font-bold text-slate-800" suppressHydrationWarning>
-                    {m.durationTranslated || m.duration}
-                  </td>
+        {rxCtrl.showMedicines !== false && (
+          <div className="space-y-1.5 pt-1">
+            <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-teal-800 border-b border-slate-200 pb-1 flex items-center justify-between">
+              <span>Prescribed Medication Roster (Rx)</span>
+              {translating && <span className="text-[10px] text-teal-600 font-semibold animate-pulse">Translating Timing & Duration...</span>}
+            </h4>
+            <table className="w-full text-left border border-slate-200 rounded-xl overflow-hidden">
+              <thead className="bg-slate-100 uppercase text-[10px] font-bold text-slate-700 border-b border-slate-200">
+                <tr>
+                  <th className="p-2">#</th>
+                  <th className="p-2">Medicine Name & Formulation</th>
+                  <th className="p-2 text-center">Dose</th>
+                  <th className="p-2 text-center">Timing</th>
+                  <th className="p-2 text-center">Duration</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {(translatedContent.medicines.length > 0 ? translatedContent.medicines : rxData.medicines || []).map((m, idx) => (
+                  <tr key={idx}>
+                    <td className="p-2 font-bold">{idx + 1}</td>
+                    <td className="p-2 font-bold text-slate-900" suppressHydrationWarning>{m.name}</td>
+                    <td className="p-2 text-center font-mono font-bold text-teal-700" suppressHydrationWarning>{m.dosage}</td>
+                    <td className="p-2 text-center font-bold text-slate-800" suppressHydrationWarning>
+                      {m.timingTranslated || m.timing}
+                    </td>
+                    <td className="p-2 text-center font-bold text-slate-800" suppressHydrationWarning>
+                      {m.durationTranslated || m.duration}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Prescribed Tests */}
-        {rxData.testsPrescribed && rxData.testsPrescribed.length > 0 && (
+        {rxCtrl.showLabTests !== false && rxData.testsPrescribed && rxData.testsPrescribed.length > 0 && (
           <div className="space-y-1 pt-1">
             <span className="text-[10px] font-extrabold uppercase text-slate-500">Prescribed Diagnostic Lab Scans:</span>
             <div className="flex flex-wrap gap-1.5 pt-0.5">
@@ -208,23 +217,27 @@ export default function PrintPrescriptionStandalonePage() {
         )}
 
         {/* Dynamic Translated Patient Advice & Instructions */}
-        <div className="p-3 rounded-xl bg-amber-50/50 border border-amber-200 space-y-1">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-extrabold uppercase text-amber-900">
-              Patient Advice & Instructions ({selectedLang.toUpperCase()})
-            </span>
-            {translating && <span className="text-[10px] text-amber-700 animate-pulse">Translating Advice...</span>}
+        {rxCtrl.showAdviceNotes !== false && (
+          <div className="p-3 rounded-xl bg-amber-50/50 border border-amber-200 space-y-1">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] font-extrabold uppercase text-amber-900">
+                Patient Advice & Instructions ({selectedLang.toUpperCase()})
+              </span>
+              {translating && <span className="text-[10px] text-amber-700 animate-pulse">Translating Advice...</span>}
+            </div>
+            <p className="text-xs font-medium text-slate-800 whitespace-pre-line leading-relaxed" suppressHydrationWarning>
+              {translatedContent.advice || rxData.advice}
+            </p>
           </div>
-          <p className="text-xs font-medium text-slate-800 whitespace-pre-line leading-relaxed" suppressHydrationWarning>
-            {translatedContent.advice || rxData.advice}
-          </p>
-        </div>
+        )}
 
         {/* Next Follow-up Date */}
-        <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold">
-          <span>Next Recommended Follow-Up Date:</span>
-          <strong className="font-mono text-teal-700 text-sm" suppressHydrationWarning>{rxData.followUpDate}</strong>
-        </div>
+        {rxCtrl.showFollowUpDate !== false && (
+          <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold">
+            <span>Next Recommended Follow-Up Date:</span>
+            <strong className="font-mono text-teal-700 text-sm" suppressHydrationWarning>{rxData.followUpDate}</strong>
+          </div>
+        )}
 
       </div>
     </PrintableLayout>

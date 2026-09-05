@@ -7,12 +7,119 @@ const STORAGE_KEY = 'aashora-clinic-store-v11';
 // Initial Time Slot Settings Master
 const defaultTimeSlotMaster = {
   slotDuration: 15, // minutes (10, 15, 20, 25, 30)
+  maxPatientsPerSlot: 4,
   shifts: {
-    Morning: { start: '09:00', end: '13:00' },
-    Afternoon: { start: '14:00', end: '17:00' },
-    Evening: { start: '18:00', end: '21:00' },
+    Morning: { start: '09:00', end: '13:00', enabled: true },
+    Afternoon: { start: '14:00', end: '17:00', enabled: true },
+    Evening: { start: '18:00', end: '21:00', enabled: true },
   },
   workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+};
+
+// Default Doctor Master Configuration
+export const DEFAULT_DOCTORS_MASTER = [
+  {
+    id: 'DOC-101',
+    doctorName: 'Dr. Arpit Pandey',
+    fullName: 'Dr. Arpit Pandey (M.D. Cardiology)',
+    department: 'Cardiology',
+    specialization: 'Cardiologist',
+    phone: '9876543210',
+    email: 'arpit@medonext.com',
+    opdRoom: 'OPD-101',
+    consultationFee: 500,
+    status: 'Active',
+  },
+  {
+    id: 'DOC-102',
+    doctorName: 'Dr. B.M. Jayswal',
+    fullName: 'Dr. B.M. Jayswal (Consultant Physician)',
+    department: 'General Medicine',
+    specialization: 'Consultant Physician',
+    phone: '9876543211',
+    email: 'jayswal@medonext.com',
+    opdRoom: 'OPD-102',
+    consultationFee: 400,
+    status: 'Active',
+  },
+  {
+    id: 'DOC-103',
+    doctorName: 'Dr. R.K. Sharma',
+    fullName: 'Dr. R.K. Sharma (General Surgeon)',
+    department: 'General Surgery',
+    specialization: 'Surgeon',
+    phone: '9876543212',
+    email: 'sharma@medonext.com',
+    opdRoom: 'OPD-103',
+    consultationFee: 600,
+    status: 'Active',
+  },
+  {
+    id: 'DOC-104',
+    doctorName: 'Dr. Priya Singh',
+    fullName: 'Dr. Priya Singh (Pediatrician)',
+    department: 'Pediatrics',
+    specialization: 'Pediatrician',
+    phone: '9876543213',
+    email: 'priya@medonext.com',
+    opdRoom: 'OPD-104',
+    consultationFee: 350,
+    status: 'Active',
+  },
+  {
+    id: 'DOC-105',
+    doctorName: 'Dr. Ankit Verma',
+    fullName: 'Dr. Ankit Verma (Orthopedic)',
+    department: 'Orthopedics',
+    specialization: 'Orthopedic Surgeon',
+    phone: '9876543214',
+    email: 'ankit@medonext.com',
+    opdRoom: 'OPD-105',
+    consultationFee: 450,
+    status: 'Active',
+  },
+];
+
+// Default Department & Specialization Master
+export const DEFAULT_DEPARTMENTS_MASTER = [
+  { id: 'DEP-1', name: 'Cardiology', code: 'CARD', specializations: ['Cardiologist', 'Interventional Cardiology'], status: 'Active' },
+  { id: 'DEP-2', name: 'General Medicine', code: 'GENMED', specializations: ['Consultant Physician', 'Internal Medicine'], status: 'Active' },
+  { id: 'DEP-3', name: 'General Surgery', code: 'GENSURG', specializations: ['Surgeon', 'Laparoscopic Surgeon'], status: 'Active' },
+  { id: 'DEP-4', name: 'Pediatrics', code: 'PED', specializations: ['Pediatrician', 'Neonatologist'], status: 'Active' },
+  { id: 'DEP-5', name: 'Orthopedics', code: 'ORTHO', specializations: ['Orthopedic Surgeon', 'Joint Replacement'], status: 'Active' },
+  { id: 'DEP-6', name: 'Dermatology', code: 'DERM', specializations: ['Dermatologist', 'Cosmetologist'], status: 'Active' },
+];
+
+// Default Payment Modes & Charges Master
+export const DEFAULT_PAYMENT_MODES_MASTER = [
+  { id: 'PM-1', name: 'Cash', type: 'Direct', isDefault: true, extraChargePercent: 0, status: 'Active' },
+  { id: 'PM-2', name: 'UPI / QR Code', type: 'Digital', isDefault: false, extraChargePercent: 0, status: 'Active' },
+  { id: 'PM-3', name: 'Card / POS', type: 'Digital', isDefault: false, extraChargePercent: 0, status: 'Active' },
+  { id: 'PM-4', name: 'Net Banking', type: 'Digital', isDefault: false, extraChargePercent: 0, status: 'Active' },
+  { id: 'PM-5', name: 'Due / Credit', type: 'Credit', isDefault: false, extraChargePercent: 0, status: 'Active' },
+];
+
+export const DEFAULT_SERVICE_CHARGES_MASTER = [
+  { id: 'CHG-1', serviceName: 'OPD Consultation Fee', category: 'Consultation', amount: 500, status: 'Active' },
+  { id: 'CHG-2', serviceName: 'Emergency Consultation', category: 'Consultation', amount: 800, status: 'Active' },
+  { id: 'CHG-3', serviceName: 'Follow-Up Visit Fee', category: 'Consultation', amount: 300, status: 'Active' },
+  { id: 'CHG-4', serviceName: 'Registration Charge', category: 'Administrative', amount: 100, status: 'Active' },
+];
+
+// Default Prescription Fields Control
+export const DEFAULT_PRESCRIPTION_CONTROLS = {
+  showHeader: true,
+  showDoctorDetails: true,
+  showPatientVitals: true,
+  showAllergiesAddictions: true,
+  showPastHistory: true,
+  showComplaints: true,
+  showDiagnosis: true,
+  showMedicines: true,
+  showLabTests: true,
+  showAdviceNotes: true,
+  showFollowUpDate: true,
+  showSignature: true,
 };
 
 // Demo Doctors Configuration
@@ -66,6 +173,11 @@ let globalStoreState = {
   labTestsMaster: [],
   adviceTemplatesMaster: INITIAL_ADVICE_TEMPLATES,
   timeSlotSettings: defaultTimeSlotMaster,
+  doctorsMaster: DEFAULT_DOCTORS_MASTER,
+  departmentsMaster: DEFAULT_DEPARTMENTS_MASTER,
+  paymentModesMaster: DEFAULT_PAYMENT_MODES_MASTER,
+  serviceChargesMaster: DEFAULT_SERVICE_CHARGES_MASTER,
+  prescriptionFieldControls: DEFAULT_PRESCRIPTION_CONTROLS,
 };
 
 const listeners = new Set();
@@ -128,26 +240,25 @@ export function useClinicStore() {
       updatedAppointments = state.appointments.filter((a) => a.mobileno !== patData.mobileno);
     }
 
-    // Auto-create Billing Payment Receipt if paidAmount > 0
+    // Auto-create Billing Payment Receipt for any finalized registration
     let updatedPayments = state.payments || [];
-    if (newPat.paidAmount > 0) {
-      const nextRct = `RCT-${(state.payments || []).length + 1001}`;
-      const newPay = {
-        receiptNo: nextRct,
-        gsspatid: newPat.gsspatid,
-        regId: newPat.regId,
-        fullname: `${newPat.title} ${newPat.fullname}`,
-        date: regDate,
-        totalAmount: newPat.registrationFee || 200,
-        discount: newPat.discount || 0,
-        paidAmount: newPat.paidAmount || 0,
-        dueAmount: newPat.dueAmount || 0,
-        paymentMode: newPat.paymentMode || 'Cash',
-        serviceType: `${newPat.visitType || 'First Visit'} - Consultation & Registration Fee`,
-        doctorRef: newPat.doctorRef || '',
-      };
-      updatedPayments = [newPay, ...(state.payments || [])];
-    }
+    const nextRct = `RCT-${(state.payments || []).length + 1001}`;
+    const newPay = {
+      receiptNo: nextRct,
+      gsspatid: newPat.gsspatid,
+      regId: newPat.regId,
+      fullname: `${newPat.title} ${newPat.fullname}`,
+      date: regDate,
+      totalAmount: newPat.registrationFee !== undefined ? newPat.registrationFee : 0,
+      discount: newPat.discount !== undefined ? newPat.discount : 0,
+      discountPercent: newPat.discountPercent !== undefined ? newPat.discountPercent : 0,
+      paidAmount: newPat.paidAmount !== undefined ? newPat.paidAmount : 0,
+      dueAmount: newPat.dueAmount !== undefined ? newPat.dueAmount : 0,
+      paymentMode: newPat.paymentMode || 'Cash',
+      serviceType: `${newPat.visitType || 'First Visit'} - Consultation & Registration Fee`,
+      doctorRef: newPat.doctorRef || '',
+    };
+    updatedPayments = [newPay, ...(state.payments || [])];
 
     saveStore({ patients: updatedPatients, appointments: updatedAppointments, payments: updatedPayments });
     return newPat;
@@ -293,6 +404,129 @@ export function useClinicStore() {
     saveStore({ timeSlotSettings: newSettings });
   };
 
+  // --- DOCTOR MASTER ACTIONS ---
+  const addDoctorMaster = (docData) => {
+    const nextId = `DOC-${(state.doctorsMaster || []).length + 101}`;
+    const newDoc = {
+      ...docData,
+      id: nextId,
+      fullName: docData.fullName || `${docData.doctorName} (${docData.specialization || docData.department})`,
+      status: docData.status || 'Active',
+    };
+    const updated = [newDoc, ...(state.doctorsMaster || [])];
+    saveStore({ doctorsMaster: updated });
+    return newDoc;
+  };
+
+  const updateDoctorMaster = (id, updatedFields) => {
+    const updated = (state.doctorsMaster || []).map((d) =>
+      d.id.toString() === id.toString()
+        ? {
+            ...d,
+            ...updatedFields,
+            fullName: updatedFields.doctorName || updatedFields.specialization
+              ? `${updatedFields.doctorName || d.doctorName} (${updatedFields.specialization || d.specialization || updatedFields.department || d.department})`
+              : d.fullName,
+          }
+        : d
+    );
+    saveStore({ doctorsMaster: updated });
+  };
+
+  const toggleDoctorStatus = (id) => {
+    const updated = (state.doctorsMaster || []).map((d) =>
+      d.id.toString() === id.toString() ? { ...d, status: d.status === 'Active' ? 'Inactive' : 'Active' } : d
+    );
+    saveStore({ doctorsMaster: updated });
+  };
+
+  const deleteDoctorMaster = (id) => {
+    const updated = (state.doctorsMaster || []).filter((d) => d.id.toString() !== id.toString());
+    saveStore({ doctorsMaster: updated });
+  };
+
+  // --- DEPARTMENT MASTER ACTIONS ---
+  const addDepartmentMaster = (depData) => {
+    const nextId = `DEP-${(state.departmentsMaster || []).length + 1}`;
+    const newDep = {
+      ...depData,
+      id: nextId,
+      specializations: Array.isArray(depData.specializations)
+        ? depData.specializations
+        : (depData.specializations || '').split(',').map((s) => s.trim()).filter(Boolean),
+      status: depData.status || 'Active',
+    };
+    const updated = [...(state.departmentsMaster || []), newDep];
+    saveStore({ departmentsMaster: updated });
+    return newDep;
+  };
+
+  const updateDepartmentMaster = (id, updatedFields) => {
+    const updated = (state.departmentsMaster || []).map((dep) =>
+      dep.id.toString() === id.toString()
+        ? {
+            ...dep,
+            ...updatedFields,
+            specializations: Array.isArray(updatedFields.specializations)
+              ? updatedFields.specializations
+              : (updatedFields.specializations || '').split(',').map((s) => s.trim()).filter(Boolean),
+          }
+        : dep
+    );
+    saveStore({ departmentsMaster: updated });
+  };
+
+  const deleteDepartmentMaster = (id) => {
+    const updated = (state.departmentsMaster || []).filter((dep) => dep.id.toString() !== id.toString());
+    saveStore({ departmentsMaster: updated });
+  };
+
+  // --- PAYMENT MODE & CHARGE MASTER ACTIONS ---
+  const addPaymentModeMaster = (pmData) => {
+    const nextId = `PM-${(state.paymentModesMaster || []).length + 1}`;
+    const newPm = { ...pmData, id: nextId, status: pmData.status || 'Active' };
+    const updated = [...(state.paymentModesMaster || []), newPm];
+    saveStore({ paymentModesMaster: updated });
+    return newPm;
+  };
+
+  const togglePaymentModeStatus = (id) => {
+    const updated = (state.paymentModesMaster || []).map((pm) =>
+      pm.id.toString() === id.toString() ? { ...pm, status: pm.status === 'Active' ? 'Inactive' : 'Active' } : pm
+    );
+    saveStore({ paymentModesMaster: updated });
+  };
+
+  const deletePaymentModeMaster = (id) => {
+    const updated = (state.paymentModesMaster || []).filter((pm) => pm.id.toString() !== id.toString());
+    saveStore({ paymentModesMaster: updated });
+  };
+
+  const addServiceChargeMaster = (chgData) => {
+    const nextId = `CHG-${(state.serviceChargesMaster || []).length + 1}`;
+    const newChg = { ...chgData, id: nextId, status: chgData.status || 'Active' };
+    const updated = [...(state.serviceChargesMaster || []), newChg];
+    saveStore({ serviceChargesMaster: updated });
+    return newChg;
+  };
+
+  const updateServiceChargeMaster = (id, updatedFields) => {
+    const updated = (state.serviceChargesMaster || []).map((c) =>
+      c.id.toString() === id.toString() ? { ...c, ...updatedFields } : c
+    );
+    saveStore({ serviceChargesMaster: updated });
+  };
+
+  const deleteServiceChargeMaster = (id) => {
+    const updated = (state.serviceChargesMaster || []).filter((c) => c.id.toString() !== id.toString());
+    saveStore({ serviceChargesMaster: updated });
+  };
+
+  // --- PRESCRIPTION FIELDS CONTROL ACTIONS ---
+  const updatePrescriptionFieldControls = (newControls) => {
+    saveStore({ prescriptionFieldControls: newControls });
+  };
+
   return {
     currentUser: state.currentUser || DEMO_DOCTORS.Arpit,
     loginUser,
@@ -307,6 +541,11 @@ export function useClinicStore() {
     labTestsMaster: state.labTestsMaster || [],
     adviceTemplatesMaster: state.adviceTemplatesMaster || INITIAL_ADVICE_TEMPLATES,
     timeSlotSettings: state.timeSlotSettings || defaultTimeSlotMaster,
+    doctorsMaster: state.doctorsMaster || DEFAULT_DOCTORS_MASTER,
+    departmentsMaster: state.departmentsMaster || DEFAULT_DEPARTMENTS_MASTER,
+    paymentModesMaster: state.paymentModesMaster || DEFAULT_PAYMENT_MODES_MASTER,
+    serviceChargesMaster: state.serviceChargesMaster || DEFAULT_SERVICE_CHARGES_MASTER,
+    prescriptionFieldControls: state.prescriptionFieldControls || DEFAULT_PRESCRIPTION_CONTROLS,
     addPatient,
     sendForVitals,
     saveVitalsAndCheckIn,
@@ -323,5 +562,19 @@ export function useClinicStore() {
     addDiagnosisMaster,
     addAdviceTemplateMaster,
     updateTimeSlotSettings,
+    addDoctorMaster,
+    updateDoctorMaster,
+    toggleDoctorStatus,
+    deleteDoctorMaster,
+    addDepartmentMaster,
+    updateDepartmentMaster,
+    deleteDepartmentMaster,
+    addPaymentModeMaster,
+    togglePaymentModeStatus,
+    deletePaymentModeMaster,
+    addServiceChargeMaster,
+    updateServiceChargeMaster,
+    deleteServiceChargeMaster,
+    updatePrescriptionFieldControls,
   };
 }

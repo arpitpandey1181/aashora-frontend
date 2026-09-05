@@ -12,4 +12,6 @@ export const vitalsConfig = {
   showPainScore: true, // NEW: Pain Scale (0-10)
 };
 
+export const VITALS_FIELD_CONFIG = vitalsConfig;
+
 export default vitalsConfig;

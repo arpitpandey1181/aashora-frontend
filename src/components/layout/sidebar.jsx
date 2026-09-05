@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { AashoraLogo } from '@/components/common/logo';
 import {
   LayoutDashboard,
@@ -16,41 +16,44 @@ import {
   Settings,
   Activity,
   X,
+  LogOut,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
 export const navigationGroups = [
   {
     title: 'CLINIC CORE',
     items: [
-      { name: 'Clinic Dashboard', href: '/', icon: LayoutDashboard },
-      { name: 'Front Desk Inbox', href: '/frontdesk', icon: Users },
-      { name: 'Vitals Taken Inbox', href: '/vitals-inbox', icon: Activity },
-      { name: 'Patient Registration', href: '/patients', icon: UserPlus },
-      { name: 'Book Appointment Slot', href: '/appointments/book', icon: Calendar },
-      { name: 'E-Prescriptions (Rx)', href: '/prescriptions', icon: FileText },
-      { name: 'Follow-Up Patients', href: '/followups', icon: Calendar },
+      { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+      { name: 'Front Desk', href: '/frontdesk', icon: Users },
+      { name: 'Pre Assessment', href: '/vitals-inbox', icon: Activity },
+      { name: 'Registration', href: '/patients', icon: UserPlus },
+      { name: 'Book Appointment', href: '/appointments/book', icon: Calendar },
+      { name: 'Doctor Examination', href: '/prescriptions', icon: FileText },
+      { name: 'Follow-Ups', href: '/followups', icon: Calendar },
       { name: 'Billing Dashboard', href: '/billing', icon: CreditCard },
     ],
   },
   {
     title: 'DIAGNOSTICS & PHARMACY',
     items: [
-      { name: 'Pharmacy Stock', href: '/pharmacy', icon: Pill },
-      { name: 'Patient Ledger', href: '/ledger', icon: Wallet },
+      { name: 'Pharmacy', href: '/pharmacy', icon: Pill },
+      { name: 'Ledger', href: '/ledger', icon: Wallet },
     ],
   },
   {
     title: 'CLINIC ADMIN',
     items: [
-      { name: 'Clinic Reports', href: '/reports', icon: BarChart3 },
-      { name: 'Clinic Settings', href: '/settings', icon: Settings },
+      { name: 'Reports', href: '/reports', icon: BarChart3 },
+      { name: 'Settings', href: '/settings', icon: Settings },
     ],
   },
 ];
 
 export function SidebarContent({ onClose }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <div className="flex flex-col justify-between h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
@@ -71,7 +74,7 @@ export function SidebarContent({ onClose }) {
         </div>
 
         {/* Grouped Navigation Links */}
-        <nav className="p-3 space-y-4 overflow-y-auto max-h-[calc(100vh-160px)]">
+        <nav className="p-3 space-y-4 overflow-y-auto max-h-[calc(100vh-210px)]">
           {navigationGroups.map((group) => (
             <div key={group.title} className="space-y-1">
               <span className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">
@@ -102,8 +105,8 @@ export function SidebarContent({ onClose }) {
         </nav>
       </div>
 
-      {/* Footer Branding Info */}
-      <div className="p-3 border-t border-slate-100 dark:border-slate-800">
+      {/* Footer Branding Info & Red Logout Button */}
+      <div className="p-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
         <div className="p-2.5 rounded-xl bg-teal-50/50 dark:bg-slate-800/40 border border-teal-100/50 dark:border-slate-700/50">
           <p className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200">
             AASHORA Clinic Management
@@ -113,6 +116,20 @@ export function SidebarContent({ onClose }) {
             .NET REST API Live Connected
           </span>
         </div>
+
+        {/* Red Logout Button */}
+        <button
+          type="button"
+          onClick={() => {
+            if (onClose) onClose();
+            toast.success('Logged out successfully!');
+            router.push('/login');
+          }}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl font-black text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 dark:text-rose-400 border border-rose-200 dark:border-rose-900 transition-all cursor-pointer shadow-sm"
+        >
+          <LogOut className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+          Logout
+        </button>
       </div>
     </div>
   );

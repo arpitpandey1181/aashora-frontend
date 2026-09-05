@@ -16,13 +16,10 @@ export default function AppointmentsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-teal-600 dark:text-teal-400" />
-            Appointment Scheduler
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-teal-600 dark:text-teal-400" />
+            Appointments
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Manage doctor slots & consultation status connected to `AppointmentController.cs`
-          </p>
         </div>
         <Link href="/appointments/book">
           <Button size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">

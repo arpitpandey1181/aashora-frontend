@@ -29,8 +29,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { loginUser } = useClinicStore();
 
-  const [username, setUsername] = useState('Arpit');
-  const [password, setPassword] = useState('A@27');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [location, setLocation] = useState('DEMO AASHORA QA');
   const [financialYear, setFinancialYear] = useState('2026-2027');
   const [rememberMe, setRememberMe] = useState(true);
@@ -58,126 +58,170 @@ export default function LoginPage() {
     }, 400);
   };
 
+  const [mobileTab, setMobileTab] = useState('login'); // 'login' | 'features'
+
   return (
-    <div className="min-h-screen h-screen w-full bg-gradient-to-br from-emerald-50/80 via-teal-50/50 to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center p-2 sm:p-4 relative overflow-hidden">
+    <div className="min-h-screen lg:h-screen w-full bg-gradient-to-br from-emerald-50/80 via-teal-50/50 to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center p-2.5 sm:p-4 lg:p-6 relative overflow-y-auto lg:overflow-hidden">
       {/* Background Soft Light-Green Glow Orbs */}
       <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-emerald-400/20 dark:bg-emerald-500/10 rounded-full blur-[130px] pointer-events-none animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] bg-sky-400/20 dark:bg-sky-500/10 rounded-full blur-[130px] pointer-events-none animate-pulse" />
 
       {/* Main 2-Column Split Portal Container */}
-      <div className="w-full max-w-5xl max-h-[96vh] grid grid-cols-1 lg:grid-cols-12 rounded-3xl border border-emerald-200/80 dark:border-teal-900/40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl shadow-2xl overflow-hidden z-10 my-auto">
+      <div className="w-full max-w-5xl my-auto grid grid-cols-1 lg:grid-cols-12 rounded-3xl border border-emerald-200/80 dark:border-teal-900/40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl shadow-2xl z-10 overflow-hidden lg:max-h-[92vh]">
         
-        {/* Left Column: AASHORA Light Green Showcase */}
-        <div className="lg:col-span-6 p-6 sm:p-8 lg:p-10 bg-gradient-to-br from-emerald-50/90 via-teal-50/70 to-sky-50/80 dark:from-teal-950/50 dark:via-slate-900 dark:to-sky-950/40 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-teal-100 dark:border-slate-800 relative overflow-y-auto max-h-[85vh] lg:max-h-none">
-          <div className="space-y-4 sm:space-y-6 z-10">
+        {/* Left Column: AASHORA Showcase (Visible on Desktop lg:flex, or on mobile when features tab active) */}
+        <div className={`p-5 sm:p-7 lg:p-8 bg-gradient-to-br from-emerald-50/90 via-teal-50/70 to-sky-50/80 dark:from-teal-950/50 dark:via-slate-900 dark:to-sky-950/40 flex-col justify-between border-b lg:border-b-0 lg:border-r border-teal-100 dark:border-slate-800 relative ${mobileTab === 'features' ? 'flex col-span-1' : 'hidden lg:flex lg:col-span-6'}`}>
+          <div className="space-y-3 sm:space-y-5 z-10">
             
             {/* Header Logo */}
             <div className="flex items-center justify-between">
-              <AashoraLogo size="xl" className="max-w-[85%] sm:max-w-full" />
+              <AashoraLogo size="lg" className="max-w-[85%] sm:max-w-full" />
             </div>
 
-            <div className="space-y-2 sm:space-y-3 pt-1">
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 text-[11px] sm:text-xs font-black">
-                <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+            <div className="space-y-2 pt-0.5">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 text-[10px] sm:text-xs font-black">
+                <Sparkles className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
                 <span>Next-Gen Healthcare Management OS</span>
               </div>
               
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+              <h1 className="text-lg sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
                 Smart Clinic & Operations
               </h1>
 
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-                Streamlined Patient Registrations, Doctor Consultation Queue, E-Prescriptions (Rx), Billing Receipts, and Lab Reports.
+              <p className="text-xs text-slate-600 dark:text-slate-400 max-w-md leading-relaxed">
+                Streamlined Patient Registrations, Doctor Queue, E-Prescriptions, Billing Receipts, and Lab Reports.
               </p>
 
               {/* Feature Highlights Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-left">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-left">
                 {[
-                  { title: 'Queue Counter & Token System', desc: 'Real-time patient flow & doctor schedules' },
-                  { title: 'Dynamic E-Prescription (Rx)', desc: 'Translate advice & custom templates' },
+                  { title: 'Queue Counter System', desc: 'Real-time patient flow & doctor schedules' },
+                  { title: 'Dynamic E-Prescription', desc: 'Translate advice & custom templates' },
                   { title: 'Integrated Counter Billing', desc: 'Net / due payment tracking & receipts' },
                   { title: 'Vitals Assessment Inbox', desc: 'Seamless routing from front desk' },
                 ].map((f) => (
-                  <div key={f.title} className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-0.5">
+                  <div key={f.title} className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-0.5">
                     <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                      <Sparkles className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
                       {f.title}
                     </h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{f.desc}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">{f.desc}</p>
                   </div>
                 ))}
+              </div>
+
+              {/* Mobile Back to Login Button */}
+              <div className="pt-2 lg:hidden">
+                <Button
+                  onClick={() => setMobileTab('login')}
+                  className="w-full h-9 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl"
+                >
+                  <Lock className="w-3.5 h-3.5 mr-1.5" /> Back to Portal Login
+                </Button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Full Login Portal Form with Top Right Theme Toggle */}
-        <div className="lg:col-span-6 p-6 sm:p-8 lg:p-10 flex flex-col justify-between bg-white dark:bg-slate-900/95 overflow-y-auto">
+        {/* Right Column: Full Login Portal Form */}
+        <div className={`p-4 sm:p-6 lg:p-8 flex-col justify-between bg-white dark:bg-slate-900/95 w-full ${mobileTab === 'login' ? 'flex col-span-1 lg:col-span-6' : 'hidden lg:flex lg:col-span-6'}`}>
           
-          {/* Top Right Theme Selector */}
-          <div className="flex justify-end w-full pb-4">
-            <ThemeToggle />
-          </div>
-
-          <div className="space-y-4 sm:space-y-6 max-w-md mx-auto w-full my-auto">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Portal Login</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Enter your clinic staff account credentials to proceed</p>
+          {/* Mobile Header + 2-Tab Switcher & Theme Selector */}
+          <div className="w-full pb-2.5 border-b border-slate-100 dark:border-slate-800 mb-2 sm:mb-3">
+            <div className="flex items-center justify-between">
+              <div className="lg:hidden">
+                <AashoraLogo size="md" />
+              </div>
+              <div className="ml-auto">
+                <ThemeToggle />
+              </div>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-3.5 sm:space-y-4">
+            {/* Mobile 2-Tab Switcher */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl mt-2 lg:hidden">
+              <button
+                type="button"
+                onClick={() => setMobileTab('login')}
+                className={`flex-1 py-1.5 text-[11px] font-extrabold rounded-lg transition-all ${
+                  mobileTab === 'login'
+                    ? 'bg-teal-600 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                🔑 Portal Login
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileTab('features')}
+                className={`flex-1 py-1.5 text-[11px] font-extrabold rounded-lg transition-all ${
+                  mobileTab === 'features'
+                    ? 'bg-teal-600 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                🌟 Clinic Features
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3 max-w-md mx-auto w-full my-auto">
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">Portal Login</h2>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-2.5 sm:space-y-3">
               {/* Username Field */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Username / Staff ID *</label>
+              <div className="space-y-1">
+                <label className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Username / Staff ID *</label>
                 <div className="relative">
-                  <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <User className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Enter Username"
-                    className="w-full h-10 sm:h-11 pl-10 pr-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full h-9 sm:h-10 pl-9 pr-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                     required
                   />
                 </div>
               </div>
 
               {/* Password Field */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Password *</label>
+              <div className="space-y-1">
+                <label className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Password *</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Lock className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter Password"
-                    className="w-full h-10 sm:h-11 pl-10 pr-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full h-9 sm:h-10 pl-9 pr-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                     required
                   />
                 </div>
               </div>
 
               {/* Clinic Location & Financial Year Selectors */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Location Branch *</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <label className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Location Branch *</label>
                   <select
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="w-full h-10 sm:h-11 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 px-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500"
+                    className="w-full h-9 sm:h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 px-2.5 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="DEMO AASHORA QA">DEMO AASHORA QA</option>
                     <option value="MAIN CLINIC BRANCH">MAIN AASHORA CENTER #1</option>
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Financial Year *</label>
+                <div className="space-y-1">
+                  <label className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Financial Year *</label>
                   <select
                     value={financialYear}
                     onChange={(e) => setFinancialYear(e.target.value)}
-                    className="w-full h-10 sm:h-11 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 px-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500"
+                    className="w-full h-9 sm:h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 px-2.5 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="2026-2027">2026 - 2027</option>
                     <option value="2025-2026">2025 - 2026</option>
@@ -186,31 +230,31 @@ export default function LoginPage() {
               </div>
 
               {/* Checkboxes: Remember Me & Terms Modal Link */}
-              <div className="space-y-2.5 pt-1">
+              <div className="space-y-2 pt-0.5">
                 <div className="flex items-center justify-between text-xs">
-                  <label className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-slate-700 dark:text-slate-300">
                     <input
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                      className="w-3.5 h-3.5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
                     />
-                    <span>Remember Session</span>
+                    <span className="text-[11px]">Remember Session</span>
                   </label>
-                  <a href="#" onClick={(e) => { e.preventDefault(); toast.info('Contact system administrator for password reset'); }} className="text-teal-600 dark:text-teal-400 hover:underline text-xs font-semibold">
+                  <a href="#" onClick={(e) => { e.preventDefault(); toast.info('Contact system administrator for password reset'); }} className="text-teal-600 dark:text-teal-400 hover:underline text-[11px] font-semibold">
                     Forgot Password?
                   </a>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1.5 text-xs">
                   <input
                     type="checkbox"
                     id="termsChk"
                     checked={termsAccepted}
                     onChange={(e) => setTermsAccepted(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                    className="w-3.5 h-3.5 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
                   />
-                  <label htmlFor="termsChk" className="text-slate-700 dark:text-slate-300 cursor-pointer">
+                  <label htmlFor="termsChk" className="text-slate-700 dark:text-slate-300 cursor-pointer text-[11px]">
                     I agree to{' '}
                     <button
                       type="button"
@@ -227,14 +271,14 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-10 sm:h-11 bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm shadow-lg shadow-teal-500/20 rounded-xl mt-2"
+                className="w-full h-9 sm:h-10 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-lg shadow-teal-500/20 rounded-xl mt-1.5"
               >
                 {loading ? 'Authenticating...' : 'Sign In to Portal'}
               </Button>
             </form>
           </div>
 
-          <div className="text-center text-[10px] text-slate-400 pt-4">
+          <div className="text-center text-[10px] text-slate-400 pt-2">
             AASHORA Clinic OS System &copy; 2026
           </div>
         </div>

@@ -51,7 +51,10 @@ export default function BillingDashboardPage() {
   // Modal State for "+ Create Custom Billing Receipt"
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPatId, setSelectedPatId] = useState('');
-  const [customPatientName, setCustomPatientName] = useState('');
+  const [customFirstName, setCustomFirstName] = useState('');
+  const [customMiddleName, setCustomMiddleName] = useState('');
+  const [customLastName, setCustomLastName] = useState('');
+  const customPatientName = [customFirstName, customMiddleName, customLastName].filter(Boolean).join(' ').trim();
   const [serviceType, setServiceType] = useState('Consultation & OPD Service');
   const [doctorRef, setDoctorRef] = useState(DOCTORS_MASTER_LIST[0]);
   const [grossAmount, setGrossAmount] = useState(500);
@@ -97,13 +100,13 @@ export default function BillingDashboardPage() {
           regId: pat.regId || `REG-${pat.gsspatid}`,
           fullname: `${pat.title || 'Mr.'} ${pat.fullname}`,
           date: pat.registrationdate || todayYYYYMMDD,
-          totalAmount: Number(pat.registrationFee) || Number(pat.paidAmount) || 200,
+          totalAmount: pat.registrationFee !== undefined ? Number(pat.registrationFee) : (Number(pat.paidAmount) || 0),
           discount: Number(pat.discount) || 0,
           paidAmount: Number(pat.paidAmount) || 0,
           dueAmount: Number(pat.dueAmount) || 0,
           paymentMode: pat.paymentMode || 'Cash',
           serviceType: `${pat.visitType || 'First Visit'} - Consultation & Reg Fee`,
-          doctorRef: pat.doctorRef || 'Dr. Alex Morgan',
+          doctorRef: pat.doctorRef || '',
         });
       }
     });
@@ -231,13 +234,10 @@ export default function BillingDashboardPage() {
       {/* Top Header Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-            <Receipt className="w-6 h-6 text-teal-600 dark:text-teal-400" />
-            Billing & Collections Dashboard
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <Receipt className="w-5 h-5 sm:w-6 sm:h-6 text-teal-600 dark:text-teal-400" />
+            Billing & Collections
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Real-Time Revenue Summaries, Cash vs Digital Collections, Visual Graphs & Invoicing
-          </p>
         </div>
 
         {/* Action Controls & Date Filters */}
@@ -606,7 +606,16 @@ export default function BillingDashboardPage() {
                     setSelectedPatId(e.target.value);
                     if (e.target.value) {
                       const pObj = (patients || []).find((p) => p.gsspatid.toString() === e.target.value.toString());
-                      if (pObj) setCustomPatientName(`${pObj.title || 'Mr.'} ${pObj.fullname}`);
+                      if (pObj) {
+                        const parts = (pObj.fullname || '').trim().split(/\s+/).filter(Boolean);
+                        setCustomFirstName(parts[0] || '');
+                        setCustomMiddleName(parts.length > 2 ? parts.slice(1, -1).join(' ') : '');
+                        setCustomLastName(parts.length > 1 ? parts[parts.length - 1] : '');
+                      }
+                    } else {
+                      setCustomFirstName('');
+                      setCustomMiddleName('');
+                      setCustomLastName('');
                     }
                   }}
                   className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs px-3 font-bold text-slate-900 dark:text-slate-100"
@@ -621,18 +630,47 @@ export default function BillingDashboardPage() {
               </div>
 
               {!selectedPatId && (
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
-                    Walk-In Patient Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter patient full name..."
-                    value={customPatientName}
-                    onChange={(e) => setCustomPatientName(e.target.value)}
-                    className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs px-3 font-bold text-slate-900 dark:text-slate-100"
-                    required={!selectedPatId}
-                  />
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase truncate block">
+                      First Name *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="First name..."
+                      value={customFirstName}
+                      onChange={(e) => setCustomFirstName(e.target.value)}
+                      className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs px-2.5 font-bold text-slate-900 dark:text-slate-100"
+                      required={!selectedPatId}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase truncate block">
+                      Middle Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Middle name..."
+                      value={customMiddleName}
+                      onChange={(e) => setCustomMiddleName(e.target.value)}
+                      className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs px-2.5 font-bold text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase truncate block">
+                      Last Name *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Last name..."
+                      value={customLastName}
+                      onChange={(e) => setCustomLastName(e.target.value)}
+                      className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs px-2.5 font-bold text-slate-900 dark:text-slate-100"
+                      required={!selectedPatId}
+                    />
+                  </div>
                 </div>
               )}
 

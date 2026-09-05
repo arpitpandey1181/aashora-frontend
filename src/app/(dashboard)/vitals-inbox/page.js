@@ -237,13 +237,10 @@ export default function VitalsInboxPage() {
           {/* Top Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                <Activity className="w-6 h-6 text-rose-600 dark:text-rose-400" />
-                Vitals Taken Inbox (Patient Queue)
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600 dark:text-rose-400" />
+                Vitals Inbox
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Intake vitals assessment & medical report attachment before Doctor consultation.
-              </p>
             </div>
 
             <span className="px-4 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300 font-extrabold text-xs" suppressHydrationWarning>

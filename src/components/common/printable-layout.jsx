@@ -66,8 +66,8 @@ export function PrintableLayout({
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-3 sm:p-6 font-sans print:bg-white print:p-0 print:m-0">
       
-      {/* 1 SINGLE CLEAN HORIZONTAL LINE ACTION BAR (Download PDF Removed!) */}
-      <div className="max-w-4xl mx-auto mb-5 flex flex-row items-center justify-between gap-3 print:hidden bg-white dark:bg-slate-900 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-md">
+      {/* 1 SINGLE CLEAN HORIZONTAL LINE ACTION BAR */}
+      <div className="max-w-4xl mx-auto mb-5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 print:hidden bg-white dark:bg-slate-900 p-2.5 sm:px-4 sm:py-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-md">
         
         {/* Working Back Button */}
         <Button
@@ -80,13 +80,13 @@ export function PrintableLayout({
         </Button>
 
         {/* Choose Other Language Selector */}
-        <div className="flex items-center gap-2 bg-teal-50 dark:bg-teal-950/60 px-3 py-1 rounded-xl border border-teal-200 dark:border-teal-900 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 bg-teal-50 dark:bg-teal-950/60 px-2.5 sm:px-3 py-1 rounded-xl border border-teal-200 dark:border-teal-900 shrink-0">
           <Languages className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
-          <span className="text-xs font-extrabold text-teal-900 dark:text-teal-200 whitespace-nowrap">Choose language:</span>
+          <span className="text-[11px] sm:text-xs font-extrabold text-teal-900 dark:text-teal-200 whitespace-nowrap">Choose language:</span>
           <select
             value={currentLang}
             onChange={handleLanguageChange}
-            className="h-7 rounded-lg border border-teal-300 dark:border-teal-700 bg-white dark:bg-slate-900 px-2 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500 cursor-pointer"
+            className="h-7 rounded-lg border border-teal-300 dark:border-teal-700 bg-white dark:bg-slate-900 px-1.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500 cursor-pointer max-w-[120px] sm:max-w-none"
           >
             {SUPPORTED_LANGUAGES.map((lang) => (
               <option key={lang.code} value={lang.name}>
@@ -97,7 +97,7 @@ export function PrintableLayout({
         </div>
 
         {/* Action Controls (WhatsApp + Print Page A4) */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
           <Button
             size="sm"
             variant="outline"
@@ -118,7 +118,7 @@ export function PrintableLayout({
       </div>
 
       {/* Single-Page A4 Sheet */}
-      <div className="a4-sheet max-w-[210mm] min-h-[297mm] mx-auto bg-white text-slate-900 shadow-2xl p-6 sm:p-8 border border-slate-200 flex flex-col justify-between print:shadow-none print:border-none print:p-6 print:m-0 print:w-[210mm] print:h-[297mm]">
+      <div className="a4-sheet w-full max-w-[210mm] min-h-[297mm] mx-auto bg-white text-slate-900 shadow-2xl p-4 sm:p-8 border border-slate-200 flex flex-col justify-between overflow-x-auto print:shadow-none print:border-none print:p-6 print:m-0 print:w-[210mm] print:h-[297mm]">
         
         {/* 15% HEADER SECTION */}
         <div className="header-15 text-xs border-b-2 border-teal-600 pb-4 mb-4 flex items-center justify-between gap-4 h-[15%]">
@@ -193,11 +193,11 @@ export function PrintableLayout({
 
       </div>
 
-      {/* Clean A4 Print Media Queries */}
+      {/* Clean Single-Page Print Media Queries (Guaranteed 1-Page Output for both A4 and Letter sizes) */}
       <style jsx global>{`
         @media print {
           @page {
-            size: A4 portrait;
+            size: auto;
             margin: 0;
           }
           html, body {
@@ -205,6 +205,9 @@ export function PrintableLayout({
             color: black !important;
             margin: 0 !important;
             padding: 0 !important;
+            height: 100% !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
           }
           .print\\:hidden, header, nav, button, .toast, [role="status"], [data-sonner-toaster] {
             display: none !important;
@@ -214,9 +217,17 @@ export function PrintableLayout({
             border: none !important;
             width: 100% !important;
             height: 100vh !important;
-            max-width: none !important;
-            padding: 15mm !important;
+            max-height: 100vh !important;
+            padding: 6mm 10mm !important;
             margin: 0 !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+            page-break-after: avoid !important;
+            page-break-before: avoid !important;
+            page-break-inside: avoid !important;
+            break-after: avoid !important;
+            break-before: avoid !important;
+            break-inside: avoid !important;
           }
         }
       `}</style>

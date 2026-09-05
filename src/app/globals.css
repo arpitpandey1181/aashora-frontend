@@ -72,7 +72,7 @@ body {
 @layer components {
   .btn-contrast-outline {
     background-color: var(--btn-outline-bg);
-    color: var(--btn-outline-text) !important;
+    color: var(--btn-outline-text);
     border: 1px solid var(--btn-outline-border);
     transition: all 0.15s ease-in-out;
   }
@@ -83,7 +83,7 @@ body {
 
   .btn-contrast-ghost {
     background-color: var(--btn-ghost-bg);
-    color: var(--btn-ghost-text) !important;
+    color: var(--btn-ghost-text);
     transition: all 0.15s ease-in-out;
   }
 
