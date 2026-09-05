@@ -38,7 +38,7 @@ export default function LoginPage() {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (!termsAccepted) {
       toast.error('Please accept Terms & Conditions before logging in');
@@ -46,16 +46,93 @@ export default function LoginPage() {
     }
     setLoading(true);
 
-    setTimeout(() => {
-      const res = loginUser(username, password);
+    try {
+      const today = new Date();
+      const dd = String(today.getDate()).padStart(2, '0');
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const yyyy = today.getFullYear();
+      const logintime = `${dd}/${mm}/${yyyy}`;
+
+      const params = new URLSearchParams({
+        loginid: username,
+        pwd: password,
+        userloginempid: username,
+        logintime: logintime,
+        UserName: username,
+        Password: password,
+        Logintime: logintime,
+      });
+
+      const jsonOrgParam = JSON.stringify({
+        loginid: username,
+        pwd: password,
+      });
+
+      const loginBaseUrl = process.env.NEXT_PUBLIC_LOGIN_BASE_URL || 'http://localhost:48570/frmUserLog';
+      const doctorApiUrl = process.env.NEXT_PUBLIC_DOCTOR_API_URL || 'http://localhost:48570/DoctorAPI';
+
+      let response;
+      try {
+        response = await fetch(`${loginBaseUrl}/GetUserLogin?${params}`);
+        if (!response.ok) {
+          response = await fetch(`${doctorApiUrl}/GetUserLogin?JsonOrg=${encodeURIComponent(jsonOrgParam)}`);
+        }
+      } catch {
+        response = await fetch(`${doctorApiUrl}/GetUserLogin?JsonOrg=${encodeURIComponent(jsonOrgParam)}`);
+      }
+
+      const rawText = await response.text();
       setLoading(false);
-      if (res.success) {
-        toast.success(`Welcome back! Logged in as ${res.user.fullName}`);
+      console.log('[LOGIN API RAW RESPONSE]:', rawText);
+
+      let cleanText = rawText ? rawText.trim() : '';
+      if (cleanText.startsWith('"') && cleanText.endsWith('"')) {
+        try {
+          cleanText = JSON.parse(cleanText);
+        } catch { }
+      }
+
+      if (cleanText === 'Invalid User ID or PWD' || cleanText === 'Not Registered' || cleanText === '-1') {
+        const errorMsg = cleanText === '-1' ? 'Access not allowed for this IP/Device' : cleanText;
+        toast.error(`Login Failed: ${errorMsg}`);
+        return;
+      }
+
+      let data;
+      try {
+        data = typeof cleanText === 'string' ? JSON.parse(cleanText) : cleanText;
+      } catch {
+        data = cleanText;
+      }
+
+      const loginUserObj = data?.Table?.[0] || data?.Table1?.[0] || (Array.isArray(data) ? data[0] : null);
+
+      if (loginUserObj || (typeof data === 'object' && data && !data.error)) {
+        const activeLocation = loginUserObj?.locationname || loginUserObj?.locationName || 'DEMO SOFTY CARE QA';
+        const activeEmpName = loginUserObj?.empname || loginUserObj?.empName || username;
+
+        setLocation(activeLocation);
+        toast.success(`Welcome back ${activeEmpName}! Logged in successfully.`);
+
+        const sessionUser = {
+          ...loginUserObj,
+          username: username,
+          empname: activeEmpName,
+          locationname: activeLocation,
+          loginTime: Date.now(),
+        };
+
+        localStorage.setItem('softycare_user', JSON.stringify(sessionUser));
+        localStorage.setItem('softycare_token', 'session_active_' + Date.now());
         router.push('/frontdesk');
       } else {
-        toast.error(res.error || 'Invalid Username or Password!');
+        toast.error('Login Failed: Invalid Username or Password!');
       }
-    }, 400);
+    } catch (err) {
+      setLoading(false);
+      console.error('[LOGIN API ERROR]:', err);
+      toast.error('Unable to connect to backend server. Please check Visual Studio on port 48570.');
+    }
   };
 
   const [mobileTab, setMobileTab] = useState('login'); // 'login' | 'features'

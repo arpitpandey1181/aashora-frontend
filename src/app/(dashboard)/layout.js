@@ -1,12 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sidebar, MobileSidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 export default function DashboardLayout({ children }) {
+  const router = useRouter();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const user = localStorage.getItem('softycare_user');
+      const token = localStorage.getItem('softycare_token');
+
+      if (!user && !token) {
+        router.replace('/login');
+      } else {
+        setIsAuthorized(true);
+      }
+    }
+  }, [router]);
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Verifying session &amp; authenticating...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col lg:flex-row antialiased selection:bg-teal-500 selection:text-white">

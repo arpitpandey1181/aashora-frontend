@@ -10,13 +10,26 @@ import { useClinicStore } from '@/store/clinic-store';
 import { toast } from 'sonner';
 
 export default function FrontDeskInboxPage() {
-  const { currentUser, patients, sendForVitals, checkInPatient } = useClinicStore();
+  const { currentUser, patients, appointments, sendForVitals, checkInPatient, checkOutPatient } = useClinicStore();
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [userInfo, setUserInfo] = useState(null);
 
   useEffect(() => {
     setMounted(true);
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('softycare_user');
+      if (stored) {
+        try {
+          setUserInfo(JSON.parse(stored));
+        } catch { }
+      }
+    }
   }, []);
+
+  const loggedInEmpName = userInfo?.empname || userInfo?.empName || currentUser?.doctorName || 'DR. BM JAYSWAL';
+  const loggedInLocation = userInfo?.locationname || userInfo?.locationName || 'DEMO SOFTY CARE QA';
+  const loggedInRole = userInfo?.proftype || currentUser?.role || 'PATHOLOGIST';
 
   const handleSendForVitals = (patId, name) => {
     sendForVitals(patId);
@@ -28,12 +41,16 @@ export default function FrontDeskInboxPage() {
     toast.success(`Patient ${name} Checked-In! Patient is now visible in Doctor Prescription Queue.`);
   };
 
+  const handleCheckOutPatient = (patId, name) => {
+    checkOutPatient(patId);
+    toast.success(`Patient ${name} Checked-Out!`);
+  };
+
   const filteredPatients = (patients || []).filter((p) => {
     const docRef = (p.doctorRef || '').toLowerCase();
     const curDocName = (currentUser?.doctorName || '').toLowerCase();
     const curFirstName = (currentUser?.doctorName || '').replace(/^dr\.\s*/i, '').trim().split(' ')[0].toLowerCase();
 
-    // Doctor Isolation Filter:
     const belongsToDoctor =
       currentUser?.username === 'admin' ||
       !p.doctorRef ||
@@ -109,106 +126,153 @@ export default function FrontDeskInboxPage() {
               <p className="text-[11px] text-slate-400">Click &quot;New Registration&quot; above to register counter patients.</p>
             </div>
           ) : (
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-100 dark:bg-slate-800 uppercase font-bold text-slate-700 dark:text-slate-300 sticky top-0 z-10 border-b border-slate-200 dark:border-slate-700">
+            <table className="w-full text-left text-xs align-middle">
+              <thead className="bg-slate-100/90 dark:bg-slate-800/90 uppercase font-extrabold text-[10px] tracking-wider text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
                 <tr>
-                  <th className="p-3">Registration ID</th>
-                  <th className="p-3">Patient Name</th>
-                  <th className="p-3">Mobile No</th>
-                  <th className="p-3">Doctor Ref</th>
-                  <th className="p-3">Payment Status</th>
-                  <th className="p-3">Live Pipeline Status</th>
-                  <th className="p-3 text-right">Front Desk Action</th>
+                  <th className="p-2.5">Reg ID</th>
+                  <th className="p-2.5">Patient</th>
+                  <th className="p-2.5">Contact</th>
+                  <th className="p-2.5">Doctor</th>
+                  <th className="p-2.5 text-center">Slot</th>
+                  <th className="p-2.5 text-center">Payment</th>
+                  <th className="p-2.5 text-center">Status</th>
+                  <th className="p-2.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+              <tbody className="divide-y divide-slate-200/80 dark:divide-slate-800">
                 {mounted && filteredPatients.map((p) => {
                   const status = p.checkInStatus || 'Registered';
+                  const patApp = (appointments || []).find(
+                    (a) =>
+                      (a.regId && a.regId === p.regId) ||
+                      (a.gsspatid && a.gsspatid.toString() === p.gsspatid.toString()) ||
+                      (a.mobileno && a.mobileno === p.mobileno)
+                  );
+                  const allocatedSlot = patApp ? (patApp.slotTime || patApp.time) : null;
 
                   return (
-                    <tr key={p.gsspatid} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                      <td className="p-3 font-bold font-mono text-teal-600 dark:text-teal-400" suppressHydrationWarning>{p.regId || `REG-${p.gsspatid}`}</td>
-                      <td className="p-3 font-bold text-slate-900 dark:text-white" suppressHydrationWarning>{p.title} {p.fullname} ({p.gender}, {p.age}Y)</td>
-                      <td className="p-3 font-mono text-slate-600 dark:text-slate-300" suppressHydrationWarning>{p.mobileno}</td>
-                      <td className="p-3 font-semibold text-purple-700 dark:text-purple-300" suppressHydrationWarning>{p.doctorRef || 'General'}</td>
+                    <tr key={p.gsspatid} className="hover:bg-teal-50/30 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="p-2.5 font-bold font-mono text-teal-600 dark:text-teal-400" suppressHydrationWarning>{p.regId || `REG-${p.gsspatid}`}</td>
+                      <td className="p-2.5 font-bold text-slate-900 dark:text-white" suppressHydrationWarning>
+                        {p.title} {p.fullname} ({p.gender}, {p.age}Y)
+                      </td>
+                      <td className="p-2.5 font-mono text-slate-600 dark:text-slate-300" suppressHydrationWarning>{p.mobileno}</td>
+                      <td className="p-2.5 font-semibold text-purple-700 dark:text-purple-300" suppressHydrationWarning>{p.doctorRef || 'General'}</td>
                       
-                      {/* Payment Status (Paid vs Unpaid ONLY - Sleek Compact Badge) */}
-                      <td className="p-3" suppressHydrationWarning>
+                      {/* Allocated Time Slot Column */}
+                      <td className="p-2.5 text-center" suppressHydrationWarning>
+                        {allocatedSlot ? (
+                          <span
+                            className="px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950/70 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-900 text-[10px] font-extrabold inline-flex items-center gap-1 cursor-pointer hover:bg-teal-100 transition-all whitespace-nowrap"
+                            onClick={() => window.location.href = `/appointments/book?patId=${p.gsspatid}`}
+                            title={`Assigned Slot: ${allocatedSlot} (${patApp.shift || 'Shift'}). Click to edit.`}
+                          >
+                            <Clock className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
+                            {allocatedSlot}
+                          </span>
+                        ) : (
+                          <Link
+                            href={`/appointments/book?patId=${p.gsspatid}`}
+                            className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 hover:text-teal-700 text-slate-500 text-[10px] font-semibold border border-slate-200 dark:border-slate-700 transition-all inline-flex items-center gap-1 whitespace-nowrap"
+                            title="Click to assign time slot"
+                          >
+                            + Give Slot
+                          </Link>
+                        )}
+                      </td>
+
+                      {/* Payment Status */}
+                      <td className="p-2.5 text-center" suppressHydrationWarning>
                         {Number(p.paidAmount) > 0 ? (
-                          <span className="w-16 h-6.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold flex items-center justify-center">
+                          <span className="w-20 h-6.5 mx-auto rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-900 text-[10px] font-extrabold flex items-center justify-center shadow-2xs">
                             ✓ Paid
                           </span>
                         ) : (
-                          <span className="w-16 h-6.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-extrabold flex items-center justify-center">
+                          <span className="w-20 h-6.5 mx-auto rounded-xl bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900 text-[10px] font-extrabold flex items-center justify-center shadow-2xs">
                             Unpaid
                           </span>
                         )}
                       </td>
                       
-                      {/* Short Clean Status Badges */}
-                      <td className="p-3" suppressHydrationWarning>
+                      {/* Status Badges */}
+                      <td className="p-2.5 text-center" suppressHydrationWarning>
                         {(status === 'Registered' || !status) && (
-                          <Badge variant="outline" className="w-28 h-6.5 border-amber-400 text-amber-700 bg-amber-50 font-bold text-[10px] flex items-center justify-center">
+                          <Badge variant="outline" className="w-24 h-6.5 mx-auto border-amber-400 text-amber-700 bg-amber-50 font-bold text-[10px] flex items-center justify-center">
                             Registered
                           </Badge>
                         )}
                         {status === 'Pending Vitals' && (
-                          <Badge variant="outline" className="w-28 h-6.5 border-rose-400 text-rose-700 bg-rose-50 font-bold text-[10px] flex items-center justify-center">
-                            ⏳ Pending Vitals
+                          <Badge variant="outline" className="w-24 h-6.5 mx-auto border-rose-400 text-rose-700 bg-rose-50 font-bold text-[10px] flex items-center justify-center">
+                            ⏳ Vitals
                           </Badge>
                         )}
                         {status === 'Vitals Completed' && (
-                          <Badge className="w-28 h-6.5 bg-emerald-600 text-white font-extrabold text-[10px] shadow-sm flex items-center justify-center">
+                          <Badge className="w-24 h-6.5 mx-auto bg-emerald-600 text-white font-extrabold text-[10px] shadow-2xs flex items-center justify-center">
                             ✓ Vitals Done
                           </Badge>
                         )}
                         {status === 'Checked-In' && (
-                          <Badge className="w-28 h-6.5 bg-teal-600 text-white font-bold text-[10px] flex items-center justify-center">
+                          <Badge className="w-24 h-6.5 mx-auto bg-teal-600 text-white font-bold text-[10px] flex items-center justify-center">
                             ✓ Checked-In
                           </Badge>
                         )}
                         {status === 'Checked-Out' && (
-                          <Badge variant="secondary" className="w-28 h-6.5 bg-slate-200 text-slate-700 font-bold text-[10px] flex items-center justify-center">
+                          <Badge variant="secondary" className="w-24 h-6.5 mx-auto bg-slate-200 text-slate-700 font-bold text-[10px] flex items-center justify-center">
                             Checked-Out
                           </Badge>
                         )}
                       </td>
 
-                      {/* FRONT DESK ACTION BUTTONS */}
+                      {/* Front Desk Actions */}
                       <td className="p-3 text-right">
-                        {status === 'Checked-Out' ? (
-                          <Badge variant="secondary" className="w-24 h-6.5 bg-slate-200 text-slate-700 font-bold text-[10px] flex items-center justify-center ml-auto">
-                            Checked-Out
-                          </Badge>
-                        ) : status === 'Checked-In' ? (
-                          <Badge className="w-24 h-6.5 bg-teal-600 text-white font-bold text-[10px] flex items-center justify-center ml-auto">
-                            ✓ Checked-In
-                          </Badge>
-                        ) : (
-                          <div className="flex items-center justify-end gap-1.5">
-                            
-                            {/* Vitals Button: ONLY SHOW IF PATIENT STATUS IS INITIAL 'Registered' */}
-                            {(status === 'Registered' || !status) && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleSendForVitals(p.gsspatid, p.fullname)}
-                                className="h-6.5 px-2 text-[10px] font-bold rounded-lg border-purple-300 text-purple-700 hover:bg-purple-50 flex items-center justify-center gap-1"
-                              >
-                                <Activity className="w-3 h-3 text-purple-600" /> Vitals
-                              </Button>
-                            )}
+                        <div className="flex items-center justify-end gap-1.5">
+                          {(status === 'Registered' || !status) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleSendForVitals(p.gsspatid, p.fullname)}
+                              className="h-7 px-2.5 text-[10px] font-bold rounded-xl border-purple-300 text-purple-700 hover:bg-purple-50 flex items-center justify-center gap-1"
+                              title="Send for Vitals Pre-Assessment"
+                            >
+                              <Activity className="w-3.5 h-3.5 text-purple-600" /> Vitals
+                            </Button>
+                          )}
 
-                            {/* Check-In Button: ALWAYS SHOWN UNTIL CHECKED-IN */}
+                          {(status === 'Registered' || !status || status === 'Pending Vitals' || status === 'Vitals Completed') && (
                             <Button
                               size="sm"
                               onClick={() => handleCheckInPatient(p.gsspatid, p.fullname)}
-                              className="h-6.5 px-2.5 text-[10px] font-bold rounded-lg bg-teal-600 hover:bg-teal-700 text-white shadow-sm flex items-center justify-center gap-1"
+                              className="h-7 px-3 text-[10px] font-bold rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-sm flex items-center justify-center gap-1"
+                              title="Check-In Patient to Doctor Queue"
                             >
-                              <Zap className="w-3 h-3" /> Check-In
+                              <Zap className="w-3.5 h-3.5" /> Check-In
                             </Button>
-                          </div>
-                        )}
+                          )}
+
+                          {status === 'Checked-In' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCheckOutPatient(p.gsspatid, p.fullname)}
+                              className="h-7 px-3 text-[10px] font-bold rounded-xl border-emerald-400 text-emerald-700 hover:bg-emerald-50 flex items-center justify-center gap-1"
+                              title="Mark Patient Consultation Completed / Check-Out"
+                            >
+                              Check-Out
+                            </Button>
+                          )}
+
+                          {status === 'Checked-Out' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCheckInPatient(p.gsspatid, p.fullname)}
+                              className="h-7 px-2.5 text-[10px] font-bold rounded-xl border-slate-300 text-slate-600 hover:bg-slate-100 flex items-center justify-center gap-1"
+                              title="Re Check-In Patient"
+                            >
+                              Re Check-In
+                            </Button>
+                          )}
+                        </div>
                       </td>
 
                     </tr>

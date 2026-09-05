@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { UserPlus, Search, Check, DollarSign, CreditCard, Calendar, User, ArrowLeft, Paperclip, Send, Upload, FileText, CheckCircle2, MessageSquare, CheckSquare, Edit, RefreshCw, Filter, Percent, Printer, Sparkles, ChevronDown, Layers, X } from 'lucide-react';
+import { UserPlus, Search, Check, DollarSign, CreditCard, Calendar, User, ArrowLeft, Paperclip, Send, Upload, FileText, CheckCircle2, MessageSquare, CheckSquare, Edit, RefreshCw, Filter, Percent, Printer, Sparkles, ChevronDown, Layers, X, Clock } from 'lucide-react';
 import { useClinicStore, DOCTORS_MASTER_LIST } from '@/store/clinic-store';
 import { searchIndiaLocationsInstant, prefetchIndiaCitiesFromAPI } from '@/config/india-location-data';
 import { formatDate } from '@/lib/utils';
@@ -1474,96 +1474,113 @@ export default function PatientRegistrationPage() {
             No registered patients found for the selected date range. Complete patient registration and payment above to see records here.
           </div>
         ) : (
-          <div className="overflow-x-auto max-h-[260px] overflow-y-auto border rounded-xl">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-100 dark:bg-slate-800 uppercase font-bold text-slate-700 dark:text-slate-300 border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-              <tr>
-                <th className="p-2.5">Reg ID</th>
-                <th className="p-2.5">Patient Name</th>
-                <th className="p-2.5">Visit Type</th>
-                <th className="p-2.5">Mobile / WhatsApp</th>
-                <th className="p-2.5">Doctor Ref</th>
-                <th className="p-2.5">Payment Status</th>
-                <th className="p-2.5">Routing Status</th>
-                <th className="p-2.5 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {mounted && filteredRoster.map((p) => (
-                <tr key={p.gsspatid} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                  <td className="p-2.5 font-bold font-mono text-teal-600">{p.regId || `REG-${p.gsspatid}`}</td>
-                  <td className="p-2.5 font-bold text-slate-900 dark:text-white">{p.title} {p.fullname} ({p.gender}, {p.age}Y)</td>
-                  <td className="p-2.5">
-                    <Badge className={
-                      p.visitType === 'Appointment'
-                        ? 'bg-purple-600 text-white font-bold text-[10px]'
-                        : p.visitType === 'Follow-Up'
-                        ? 'bg-teal-600 text-white font-bold text-[10px]'
-                        : 'bg-blue-600 text-white font-bold text-[10px]'
-                    }>
-                      {p.visitType || 'First Visit'}
-                    </Badge>
-                  </td>
-                  <td className="p-2.5 font-mono">{p.mobileno} {p.whatsappno && <span className="text-[10px] text-teal-600 font-extrabold">(WA: {p.whatsappno})</span>}</td>
-                  <td className="p-2.5 font-semibold text-purple-700">{p.doctorRef || 'General'}</td>
-                  
-                  {/* Payment Status (Paid vs Unpaid ONLY - No amounts) */}
-                  <td className="p-2.5" suppressHydrationWarning>
-                    {Number(p.paidAmount) > 0 ? (
-                      <span className="w-24 h-6.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold flex items-center justify-center">
-                        ✓ Paid
-                      </span>
-                    ) : (
-                      <span className="w-24 h-6.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-extrabold flex items-center justify-center">
-                        Unpaid
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-2.5">
-                    <Badge className={
-                      p.checkInStatus === 'Checked-Out'
-                        ? 'bg-emerald-600 text-white'
-                        : p.checkInStatus === 'Checked-In'
-                        ? 'bg-teal-600 text-white'
-                        : p.checkInStatus === 'Vitals Completed'
-                        ? 'bg-teal-600 text-white'
-                        : 'bg-amber-500 text-white'
-                    }>
-                      {p.checkInStatus || 'Registered'}
-                    </Badge>
-                  </td>
-                  <td className="p-2.5 text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => router.push(`/appointments/book?patId=${p.gsspatid}`)}
-                        className="h-7 px-2.5 text-[11px] font-bold text-teal-700 border-teal-300 hover:bg-teal-50 rounded-lg flex items-center gap-1"
-                      >
-                        <Calendar className="w-3.5 h-3.5 text-teal-600" /> Book Slot
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEditPatient(p)}
-                        className="h-7 px-2.5 text-[11px] font-bold text-amber-700 border-amber-300 hover:bg-amber-50 rounded-lg flex items-center gap-1"
-                      >
-                        <Edit className="w-3 h-3 text-amber-600" /> Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => window.open(`/print/billing/${p.regId || `REG-${p.gsspatid}`}`, '_blank')}
-                        className="h-7 px-2.5 text-[11px] font-bold text-purple-700 border-purple-300 hover:bg-purple-50 rounded-lg flex items-center gap-1"
-                      >
-                        <Printer className="w-3.5 h-3.5 text-purple-600" /> Receipt
-                      </Button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto max-h-[320px] overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+            <table className="w-full text-left text-xs align-middle">
+              <thead className="bg-slate-100/90 dark:bg-slate-800/90 uppercase font-extrabold text-[10px] tracking-wider text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
+                <tr>
+                  <th className="p-2.5">Reg ID</th>
+                  <th className="p-2.5">Patient</th>
+                  <th className="p-2.5 text-center">Visit</th>
+                  <th className="p-2.5">Contact</th>
+                  <th className="p-2.5">Doctor</th>
+                  <th className="p-2.5 text-center">Slot</th>
+                  <th className="p-2.5 text-center">Payment</th>
+                  <th className="p-2.5 text-center">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-200/80 dark:divide-slate-800">
+                {mounted && filteredRoster.map((p) => {
+                  const patApp = (appointments || []).find(
+                    (a) =>
+                      (a.regId && a.regId === p.regId) ||
+                      (a.gsspatid && a.gsspatid.toString() === p.gsspatid.toString()) ||
+                      (a.mobileno && a.mobileno === p.mobileno)
+                  );
+                  const allocatedSlot = patApp ? (patApp.slotTime || patApp.time) : null;
+
+                  return (
+                    <tr key={p.gsspatid} className="hover:bg-teal-50/30 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="p-2.5 font-bold font-mono text-teal-600 dark:text-teal-400">{p.regId || `REG-${p.gsspatid}`}</td>
+                      <td className="p-2.5 font-bold text-slate-900 dark:text-white">
+                        {p.title} {p.fullname} ({p.gender}, {p.age}Y)
+                      </td>
+                      <td className="p-2.5 text-center">
+                        <Badge className={
+                          p.visitType === 'Appointment'
+                            ? 'bg-purple-600 text-white font-bold text-[10px] whitespace-nowrap'
+                            : p.visitType === 'Follow-Up'
+                            ? 'bg-teal-600 text-white font-bold text-[10px] whitespace-nowrap'
+                            : 'bg-blue-600 text-white font-bold text-[10px] whitespace-nowrap'
+                        }>
+                          {p.visitType || 'First Visit'}
+                        </Badge>
+                      </td>
+                      <td className="p-2.5 font-mono text-slate-700 dark:text-slate-300">
+                        {p.mobileno} {p.whatsappno && <span className="text-[10px] text-teal-600 font-extrabold ml-1">(WA: {p.whatsappno})</span>}
+                      </td>
+                      <td className="p-2.5 font-semibold text-purple-700 dark:text-purple-300">{p.doctorRef || 'General'}</td>
+                      
+                      {/* Time Slot Column */}
+                      <td className="p-2.5 text-center" suppressHydrationWarning>
+                        {allocatedSlot ? (
+                          <span
+                            className="px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950/70 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-900 text-[10px] font-extrabold inline-flex items-center gap-1 cursor-pointer hover:bg-teal-100 transition-all whitespace-nowrap"
+                            onClick={() => router.push(`/appointments/book?patId=${p.gsspatid}`)}
+                            title={`Assigned Slot: ${allocatedSlot} (${patApp.shift || 'Shift'}). Click to edit slot.`}
+                          >
+                            <Clock className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
+                            {allocatedSlot}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => router.push(`/appointments/book?patId=${p.gsspatid}`)}
+                            className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 hover:text-teal-700 text-slate-500 text-[10px] font-semibold border border-slate-200 dark:border-slate-700 transition-all inline-flex items-center gap-1 whitespace-nowrap"
+                            title="Click to assign time slot"
+                          >
+                            + Give Slot
+                          </button>
+                        )}
+                      </td>
+
+                      {/* Payment Status */}
+                      <td className="p-2.5 text-center" suppressHydrationWarning>
+                        {Number(p.paidAmount) > 0 ? (
+                          <span className="w-20 h-6.5 mx-auto rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-900 text-[10px] font-extrabold flex items-center justify-center shadow-2xs">
+                            ✓ Paid
+                          </span>
+                        ) : (
+                          <span className="w-20 h-6.5 mx-auto rounded-xl bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900 text-[10px] font-extrabold flex items-center justify-center shadow-2xs">
+                            Unpaid
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-2.5 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditPatient(p)}
+                            className="h-7 px-2.5 text-[11px] font-bold text-amber-700 border-amber-300 hover:bg-amber-50 dark:text-amber-300 dark:border-amber-800 rounded-xl"
+                            title="Edit Patient Details"
+                          >
+                            <Edit className="w-3.5 h-3.5 text-amber-600 shrink-0" /> Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(`/print/billing/${p.regId || `REG-${p.gsspatid}`}`, '_blank')}
+                            className="h-7 px-2.5 text-[11px] font-bold text-purple-700 border-purple-300 hover:bg-purple-50 dark:text-purple-300 dark:border-purple-800 rounded-xl"
+                            title="Print Payment Receipt"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-purple-600 shrink-0" /> Receipt
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
         </div>
         )}
       </Card>
