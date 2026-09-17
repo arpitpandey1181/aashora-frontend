@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Textbox } from '@/components/ui/textbox';
+import { Dropdown } from '@/components/ui/dropdown';
 import { useClinicStore, DOCTORS_MASTER_LIST } from '@/store/clinic-store';
 import { Calendar, User, Clock, Check, ArrowLeft, Search, UserCheck, ShieldCheck, UserPlus, CheckCircle2, AlertCircle, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
@@ -102,6 +104,17 @@ export default function BookAppointmentPage() {
   // Already Registered Search & Selection
   const [regSearchTerm, setRegSearchTerm] = useState('');
   const [showRegDropdown, setShowRegDropdown] = useState(false);
+
+  // Close registered patient dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setShowRegDropdown(false);
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, []);
   const [selectedRegId, setSelectedRegId] = useState('');
   const [visitType, setVisitType] = useState('Follow-up'); // 'Follow-up' | 'Re-visit'
 
@@ -113,6 +126,7 @@ export default function BookAppointmentPage() {
   const fullname = [firstName, middleName, lastName].filter(Boolean).join(' ').trim();
   const [mobileno, setMobileno] = useState('');
   const [age, setAge] = useState('');
+  const [ageUnit, setAgeUnit] = useState('Years');
   const [gender, setGender] = useState('Male');
 
   // Appointment Details
@@ -382,13 +396,17 @@ export default function BookAppointmentPage() {
                         setShowRegDropdown(true);
                       }}
                       onFocus={() => setShowRegDropdown(true)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowRegDropdown(true);
+                      }}
                       className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-purple-300 dark:border-purple-800 text-xs bg-white dark:bg-slate-900 font-bold text-slate-900 dark:text-slate-100"
                     />
                   </div>
 
                   {/* Auto Live Search Dropdown Popup */}
                   {showRegDropdown && regSearchTerm.trim().length > 0 && (
-                    <div className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-800 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto p-1 space-y-1">
+                    <div onClick={(e) => e.stopPropagation()} className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-800 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto p-1 space-y-1">
                       <div className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                         <span>Matching Registered Patients (Click to Auto-Fill)</span>
                         <button type="button" onClick={() => setShowRegDropdown(false)} className="text-slate-400 hover:text-slate-600">✕</button>
@@ -476,84 +494,66 @@ export default function BookAppointmentPage() {
                 </div>
 
                 <div className="flex flex-col gap-1 flex-1 min-w-0">
-                  <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
+                  <Textbox
+                    label="First Name"
+                    validationType="name"
                     placeholder="First Name..."
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2 font-bold text-slate-900 dark:text-slate-100 w-full"
                     required
                   />
                 </div>
 
                 <div className="flex flex-col gap-1 flex-1 min-w-0">
-                  <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
-                    Middle Name
-                  </label>
-                  <input
-                    type="text"
+                  <Textbox
+                    label="Middle Name"
+                    validationType="name"
                     placeholder="Middle Name..."
                     value={middleName}
                     onChange={(e) => setMiddleName(e.target.value)}
-                    className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2 font-bold text-slate-900 dark:text-slate-100 w-full"
                   />
                 </div>
 
                 <div className="flex flex-col gap-1 flex-1 min-w-0">
-                  <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
+                  <Textbox
+                    label="Last Name"
+                    validationType="name"
                     placeholder="Last Name..."
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2 font-bold text-slate-900 dark:text-slate-100 w-full"
                     required
                   />
                 </div>
               </div>
             </div>
 
-            {/* Mobile (10-Digit Validation) */}
+            {/* Mobile */}
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400">
-                Mobile Number (10 Digits) *
-              </label>
-              <input
-                type="tel"
-                maxLength={10}
+              <Textbox
+                label="Mobile Number"
+                validationType="mobile"
                 placeholder="10-digit mobile number..."
                 value={mobileno}
-                onChange={(e) => setMobileno(e.target.value.replace(/\D/g, ''))}
-                className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2.5 font-mono font-bold text-slate-900 dark:text-slate-100"
+                onChange={(e) => setMobileno(e.target.value)}
                 required
               />
             </div>
 
             {/* Age */}
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400">
-                Age (Years) *
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={120}
-                placeholder="Age..."
+              <Textbox
+                label="Age"
+                validationType="age"
+                placeholder="e.g. 25 Years"
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
-                className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2.5 font-bold text-slate-900 dark:text-slate-100"
                 required
               />
             </div>
           </div>
         </Card>
 
-        {/* 3. Doctor, Date, Shift & Dynamic Time Slot Selection */}
+        {/* 3. Doctor, Date, Shift & Time Slot Selection */}
         <Card className="p-4 border-l-4 border-l-rose-500 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
             <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-rose-900 dark:text-rose-300 flex items-center gap-2">
@@ -609,7 +609,7 @@ export default function BookAppointmentPage() {
             {/* Select Shift */}
             <div className="flex flex-col gap-1">
               <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400">
-                Select Shift Master *
+                Select Shift *
               </label>
               <select
                 value={selectedShift}
@@ -623,7 +623,7 @@ export default function BookAppointmentPage() {
                   const isOff = timeSlotSettings?.shifts?.[s]?.enabled === false;
                   return (
                     <option key={s} value={s}>
-                      {s} Shift {isOff ? '(OFF / Inactive)' : ''}
+                      {s} Shift {isOff ? '(Disabled)' : ''}
                     </option>
                   );
                 })}
@@ -631,11 +631,11 @@ export default function BookAppointmentPage() {
             </div>
           </div>
 
-          {/* Dynamic Available Time Slots Grid with Past Slot Blur/Disable Logic */}
+          {/* Dynamic Available Time Slots Grid */}
           <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] font-extrabold uppercase">
               <span className="text-slate-700 dark:text-slate-300">
-                DYNAMIC TIME SLOTS ({currentShiftAvailableCount} AVAILABLE / {currentShiftTotalCount} TOTAL - {slotDuration} MIN INTERVALS) *
+                Available Time Slots ({currentShiftAvailableCount} Available)
               </span>
               {selectedSlot && (
                 <span className="text-teal-600 font-extrabold font-mono text-xs">
@@ -647,10 +647,10 @@ export default function BookAppointmentPage() {
             {currentShiftTotalCount === 0 ? (
               <div className="p-4 text-center rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 space-y-1">
                 <p className="text-xs font-extrabold text-amber-800 dark:text-amber-300">
-                  🛑 {selectedShift} Shift is Currently Disabled / OFF in Clinic Master Settings
+                  🛑 {selectedShift} Shift is Currently Disabled in Settings
                 </p>
                 <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                  To enable this shift, go to Clinic Settings Master and toggle {selectedShift} Shift to "ENABLED".
+                  To enable this shift, go to Clinic Settings and toggle {selectedShift} Shift to "ENABLED".
                 </p>
               </div>
             ) : (

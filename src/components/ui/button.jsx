@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 const buttonVariants = {
   variant: {
     default:
-      'bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm active:scale-[0.98]',
+      'bg-[var(--btn-primary-bg,#0d9488)] hover:bg-[var(--btn-primary-hover,#0f766e)] text-[var(--btn-primary-text,#ffffff)] font-bold shadow-sm active:scale-[0.98]',
     outline:
       'btn-contrast-outline font-bold shadow-sm active:scale-[0.98]',
     secondary:
@@ -14,9 +14,9 @@ const buttonVariants = {
     ghost:
       'btn-contrast-ghost font-medium',
     destructive:
-      'bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-sm',
+      'bg-[var(--btn-danger-bg,#f43f5e)] hover:bg-[var(--btn-danger-hover,#e11d48)] text-[var(--btn-danger-text,#ffffff)] font-bold shadow-sm active:scale-[0.98]',
     link:
-      'text-teal-600 dark:text-teal-400 underline-offset-4 hover:underline p-0 h-auto',
+      'text-[var(--primary,#0d9488)] underline-offset-4 hover:underline p-0 h-auto font-semibold',
   },
   size: {
     default: 'h-10 px-4 py-2 text-sm',
@@ -32,7 +32,7 @@ const Button = React.forwardRef(
       <button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:pointer-events-none cursor-pointer',
+          'inline-flex items-center justify-center rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:pointer-events-none cursor-pointer',
           buttonVariants.variant[variant] || buttonVariants.variant.default,
           buttonVariants.size[size] || buttonVariants.size.default,
           className

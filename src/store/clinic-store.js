@@ -218,19 +218,66 @@ export function useClinicStore() {
 
   // Add Registered Patient & Auto-Create Payment Receipt
   const addPatient = (patData) => {
-    const nextId = state.patients.length > 0 ? Math.max(...state.patients.map((p) => p.gsspatid)) + 1 : 1001;
+    const nextId = state.patients.length > 0 ? Math.max(...state.patients.map((p) => p.gsspatid || 1000)) + 1 : 1;
     const regDate = patData.registrationdate || new Date().toISOString().split('T')[0];
+    const generatedUHID = patData.uhid || patData.puhid || patData.regId || `UHID${new Date().getFullYear()}${nextId}`;
+
+    let userTenantId = '';
+    if (typeof window !== 'undefined') {
+      try {
+        const userStr = localStorage.getItem('softycare_user');
+        if (userStr) {
+          const u = JSON.parse(userStr);
+          userTenantId = u?.tenantid || u?.tenantId || u?.orgid || u?.orgId || '';
+        }
+      } catch (e) {}
+    }
+
+    const activeTenantId = patData.tenantid || userTenantId || '';
+
     const newPat = {
       ...patData,
       title: patData.title || 'Mr.',
       gsspatid: nextId,
-      regId: `REG-${nextId}`,
+      uhid: generatedUHID,
+      regId: generatedUHID,
+      tenantid: activeTenantId,
       status: patData.status || 'Registered',
       checkInStatus: patData.checkInStatus || 'Registered',
       registrationdate: regDate,
       dueAmount: patData.dueAmount || 0,
       doctorRef: patData.doctorRef || '',
     };
+
+    const todayObj = new Date();
+    const ddStr = String(todayObj.getDate()).padStart(2, '0');
+    const mmStr = String(todayObj.getMonth() + 1).padStart(2, '0');
+    const yyyyStr = todayObj.getFullYear();
+    const formattedDDMMYYYY = `${ddStr}/${mmStr}/${yyyyStr}`;
+    const formattedEntDateTime = `${formattedDDMMYYYY} ${String(todayObj.getHours()).padStart(2, '0')}:${String(todayObj.getMinutes()).padStart(2, '0')}:${String(todayObj.getSeconds()).padStart(2, '0')}`;
+
+    // Async Save to PostgreSQL Backend API
+    if (typeof window !== 'undefined') {
+      try {
+        fetch('http://localhost:58781/api/Aashora/SavePatientRegistration', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(activeTenantId ? { 'X-Tenant-ID': activeTenantId } : {})
+          },
+          body: JSON.stringify({
+            firstname: newPat.fullname,
+            mobileno: newPat.mobileno,
+            dob: newPat.dob,
+            uhid: generatedUHID,
+            tenantid: activeTenantId,
+            regdate: patData.regdate || formattedDDMMYYYY,
+            entdatetime: formattedEntDateTime
+          })
+        }).catch(() => {});
+      } catch (e) {}
+    }
+
     const updatedPatients = [newPat, ...state.patients];
 
     let updatedAppointments = state.appointments;

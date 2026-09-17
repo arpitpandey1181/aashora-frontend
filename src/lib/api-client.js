@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:44300/api';
+const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:58781/api';
 
 export const apiClient = axios.create({
   baseURL,
@@ -18,6 +18,16 @@ apiClient.interceptors.request.use(
       const token = localStorage.getItem('softycare_token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      }
+      const userStr = localStorage.getItem('softycare_user');
+      if (userStr) {
+        try {
+          const u = JSON.parse(userStr);
+          const tenantId = u.tenantid || u.tenantId || u.orgid || u.orgId;
+          if (tenantId) {
+            config.headers['X-Tenant-ID'] = tenantId;
+          }
+        } catch {}
       }
     }
     return config;

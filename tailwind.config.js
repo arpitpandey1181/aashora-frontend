@@ -9,6 +9,23 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        theme: {
+          primary: 'var(--primary)',
+          'primary-hover': 'var(--primary-hover)',
+          'primary-light': 'var(--primary-light)',
+          'primary-border': 'var(--primary-border)',
+          'primary-text': 'var(--primary-text)',
+          secondary: 'var(--secondary)',
+          'secondary-hover': 'var(--secondary-hover)',
+          'secondary-light': 'var(--secondary-light)',
+          success: 'var(--success)',
+          warning: 'var(--warning)',
+          danger: 'var(--danger)',
+          info: 'var(--info)',
+          background: 'var(--background)',
+          card: 'var(--card-bg)',
+          border: 'var(--card-border)',
+        },
         brand: {
           50: '#f0f7ff',
           100: '#e0effe',

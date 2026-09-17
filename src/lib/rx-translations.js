@@ -19,7 +19,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'de', name: 'German (Deutsch)' },
 ];
 
-// Pure Live Google Translate API call with zero hardcoding
+// Pure Live Google Translate API call 
 export async function translateTiming(text, targetLangName = 'English') {
   return await translateText(text, targetLangName);
 }

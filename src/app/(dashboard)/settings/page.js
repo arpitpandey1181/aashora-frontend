@@ -337,18 +337,18 @@ export default function ClinicMasterSettingsPage() {
   );
 
   return (
-    <div className="space-y-5 max-w-6xl mx-auto pb-10">
+    <div className="space-y-5 w-full pb-10">
       {/* Header */}
       <div className="border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
             <Settings className="w-6 h-6 text-teal-600 dark:text-teal-400" />
-            Master Settings Module
+            Settings & Configuration
           </h1>
         </div>
       </div>
 
-      {/* Sub-Navigation Master Tabs (Single Clean Icon Per Tab) */}
+      {/* Sub-Navigation Master Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
         <button
           type="button"
@@ -360,7 +360,7 @@ export default function ClinicMasterSettingsPage() {
           }`}
           suppressHydrationWarning
         >
-          <Stethoscope className="w-4 h-4" /> Doctor Master ({doctorsMaster?.length || 0})
+          <Stethoscope className="w-4 h-4" /> Doctors ({doctorsMaster?.length || 0})
         </button>
 
         <button
@@ -372,7 +372,7 @@ export default function ClinicMasterSettingsPage() {
               : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50'
           }`}
         >
-          <Clock className="w-4 h-4" /> Time Slot Master
+          <Clock className="w-4 h-4" /> Time Slots
         </button>
 
         <button
@@ -397,7 +397,7 @@ export default function ClinicMasterSettingsPage() {
           }`}
           suppressHydrationWarning
         >
-          <Building2 className="w-4 h-4" /> Department Master ({departmentsMaster?.length || 0})
+          <Building2 className="w-4 h-4" /> Departments ({departmentsMaster?.length || 0})
         </button>
 
         <button
@@ -409,12 +409,12 @@ export default function ClinicMasterSettingsPage() {
               : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50'
           }`}
         >
-          <CreditCard className="w-4 h-4" /> Payment Mode & Charge Master
+          <CreditCard className="w-4 h-4" /> Payment Modes & Charges
         </button>
       </div>
 
       {/* ========================================== */}
-      {/* TAB 1: DOCTOR MASTER                       */}
+      {/* TAB 1: DOCTORS                             */}
       {/* ========================================== */}
       {activeTab === 'doctors' && (
         <div className="space-y-4">
@@ -422,7 +422,7 @@ export default function ClinicMasterSettingsPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
                 <CardTitle className="text-sm font-black uppercase tracking-wider text-teal-900 dark:text-teal-300 flex items-center gap-2">
-                  <Stethoscope className="w-4 h-4 text-teal-600" /> Doctor Master Configuration
+                  <Stethoscope className="w-4 h-4 text-teal-600" /> Doctor Roster Configuration
                 </CardTitle>
               </div>
 

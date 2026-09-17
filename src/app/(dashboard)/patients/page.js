@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Card, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Textbox } from '@/components/ui/textbox';
+import { AgeInput } from '@/components/ui/age-input';
 import { UserPlus, Search, Check, DollarSign, CreditCard, Calendar, User, ArrowLeft, Paperclip, Send, Upload, FileText, CheckCircle2, MessageSquare, CheckSquare, Edit, RefreshCw, Filter, Percent, Printer, Sparkles, ChevronDown, Layers, X, Clock } from 'lucide-react';
 import { useClinicStore, DOCTORS_MASTER_LIST } from '@/store/clinic-store';
 import { searchIndiaLocationsInstant, prefetchIndiaCitiesFromAPI } from '@/config/india-location-data';
@@ -25,6 +27,8 @@ export default function PatientRegistrationPage() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
+  const [generatedUHID, setGeneratedUHID] = useState('');
+
   useEffect(() => {
     setMounted(true);
     const today = new Date().toISOString().split('T')[0];
@@ -32,6 +36,30 @@ export default function PatientRegistrationPage() {
     setFromDate(today);
     setToDate(today);
     prefetchIndiaCitiesFromAPI();
+
+    // Auto-fetch dynamic UHID sequence from PostgreSQL backend API
+    let userTenantId = '';
+    if (typeof window !== 'undefined') {
+      try {
+        const userStr = localStorage.getItem('softycare_user');
+        if (userStr) {
+          const u = JSON.parse(userStr);
+          userTenantId = u?.tenantid || u?.tenantId || u?.orgid || u?.orgId || '';
+        }
+      } catch (e) {}
+    }
+    const uhidUrl = userTenantId 
+      ? `http://localhost:58781/api/Aashora/GenerateUHID?tenantid=${userTenantId}`
+      : 'http://localhost:58781/api/Aashora/GenerateUHID';
+
+    fetch(uhidUrl)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.uhid) {
+          setGeneratedUHID(data.uhid);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Search & Date Filter States (Default to Today)
@@ -54,32 +82,85 @@ export default function PatientRegistrationPage() {
   const [isSameWhatsApp, setIsSameWhatsApp] = useState(true);
   const [whatsappno, setWhatsappno] = useState('');
   const [dob, setDob] = useState('');
-  const [ageDisplay, setAgeDisplay] = useState(''); // Calculated breakdown (Y, M, D)
+  const [ageDisplay, setAgeDisplay] = useState(''); // Calculated breakdown
   const [age, setAge] = useState('');
+  const [ageUnit, setAgeUnit] = useState('Years'); // 'Years' | 'Months' | 'Days'
   const [gender, setGender] = useState('Male');
   const [city, setCity] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [highlightedCityIndex, setHighlightedCityIndex] = useState(0);
   const [showDoctorDropdown, setShowDoctorDropdown] = useState(false);
+  const [showAgeDropdown, setShowAgeDropdown] = useState(false);
+
+  // Close all popup dropdowns on outside click
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setShowImportDropdown(false);
+      setShowAppDropdown(false);
+      setShowCityDropdown(false);
+      setShowDoctorDropdown(false);
+      setShowAgeDropdown(false);
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, []);
   const [doctorRef, setDoctorRef] = useState(DOCTORS_MASTER_LIST[0]);
   const [address, setAddress] = useState('');
   const [remark, setRemark] = useState('');
 
+  // Helper when user selects Age Unit from live popup dropdown
+  const selectAgeWithUnit = (numVal, unitVal) => {
+    const num = parseInt(numVal, 10);
+    if (isNaN(num) || num <= 0) {
+      setShowAgeDropdown(false);
+      return;
+    }
+
+    setAge(num.toString());
+    setAgeUnit(unitVal);
+    setAgeDisplay(`${num} ${unitVal}`);
+
+    const today = new Date();
+    let birthDate = new Date(today);
+    if (unitVal === 'Years') {
+      birthDate.setFullYear(today.getFullYear() - num);
+    } else if (unitVal === 'Months') {
+      birthDate.setMonth(today.getMonth() - num);
+    } else if (unitVal === 'Days') {
+      birthDate.setDate(today.getDate() - num);
+    }
+    const birthYear = birthDate.getFullYear();
+    const monthStr = String(birthDate.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(birthDate.getDate()).padStart(2, '0');
+    setDob(`${birthYear}-${monthStr}-${dayStr}`);
+    setShowAgeDropdown(false);
+  };
+
   // Helper to calculate exact Age (Years, Months, Days) from Date of Birth (DOB)
   const handleDobChange = (dobVal) => {
-    setDob(dobVal);
+    setShowAgeDropdown(false);
     if (!dobVal) {
+      setDob('');
       setAgeDisplay('');
+      setAge('');
       return;
     }
 
     const birth = new Date(dobVal);
     const today = new Date();
+    today.setHours(23, 59, 59, 999);
 
     if (isNaN(birth.getTime()) || birth > today) {
+      toast.error('Future date of birth is not allowed');
+      setDob('');
       setAgeDisplay('');
+      setAge('');
       return;
     }
+
+    setDob(dobVal);
 
     let years = today.getFullYear() - birth.getFullYear();
     let months = today.getMonth() - birth.getMonth();
@@ -96,30 +177,61 @@ export default function PatientRegistrationPage() {
       months += 12;
     }
 
-    const yearsStr = years > 0 ? `${years}Y` : '';
-    const monthsStr = months > 0 ? `${months}M` : '';
-    const daysStr = days > 0 ? `${days}D` : '';
-
-    const breakdown = [yearsStr, monthsStr, daysStr].filter(Boolean).join(' ') || '0D';
-    setAgeDisplay(breakdown);
-    setAge(years > 0 ? years.toString() : '0');
+    if (years > 0) {
+      setAge(years.toString());
+      setAgeUnit('Years');
+      setAgeDisplay(`${years} Years`);
+    } else if (months > 0) {
+      setAge(months.toString());
+      setAgeUnit('Months');
+      setAgeDisplay(`${months} Months`);
+    } else {
+      setAge(days.toString());
+      setAgeUnit('Days');
+      setAgeDisplay(`${days} Days`);
+    }
   };
 
-  // Helper when user manually enters Age number -> calculate approximate DOB
-  const handleAgeInputChange = (ageVal) => {
-    setAge(ageVal);
-    const numAge = parseInt(ageVal);
-    if (!isNaN(numAge) && numAge >= 0) {
-      const today = new Date();
-      const birthYear = today.getFullYear() - numAge;
-      const monthStr = String(today.getMonth() + 1).padStart(2, '0');
-      const dayStr = String(today.getDate()).padStart(2, '0');
-      const approxDob = `${birthYear}-${monthStr}-${dayStr}`;
-      setDob(approxDob);
-      setAgeDisplay(`${numAge}Y 0M 0D`);
-    } else {
+  // Helper when user manually enters Age number/string in single textbox
+  const handleAgeInputChange = (rawInput) => {
+    setAgeDisplay(rawInput);
+    if (!rawInput || !rawInput.toString().trim()) {
+      setAge('');
       setDob('');
-      setAgeDisplay('');
+      setShowAgeDropdown(false);
+      return;
+    }
+
+    const str = rawInput.toString().trim();
+    const numMatch = str.match(/\d+/);
+
+    if (numMatch) {
+      const numAge = parseInt(numMatch[0], 10);
+      setAge(numAge.toString());
+      setShowAgeDropdown(true);
+
+      const unitMatch = str.match(/^(\d+)\s*(Years|Year|Months|Month|Days|Day|Y|M|D)?/i);
+      const unitRaw = unitMatch && unitMatch[2] ? unitMatch[2].toLowerCase() : 'years';
+      const unitVal = unitRaw.startsWith('m') ? 'Months' : unitRaw.startsWith('d') ? 'Days' : 'Years';
+      setAgeUnit(unitVal);
+
+      const today = new Date();
+      let birthDate = new Date(today);
+      if (unitVal === 'Years') {
+        birthDate.setFullYear(today.getFullYear() - numAge);
+      } else if (unitVal === 'Months') {
+        birthDate.setMonth(today.getMonth() - numAge);
+      } else if (unitVal === 'Days') {
+        birthDate.setDate(today.getDate() - numAge);
+      }
+      const birthYear = birthDate.getFullYear();
+      const monthStr = String(birthDate.getMonth() + 1).padStart(2, '0');
+      const dayStr = String(birthDate.getDate()).padStart(2, '0');
+      setDob(`${birthYear}-${monthStr}-${dayStr}`);
+    } else {
+      setAge('');
+      setDob('');
+      setShowAgeDropdown(false);
     }
   };
 
@@ -537,6 +649,7 @@ export default function PatientRegistrationPage() {
     } else {
       // CREATE NEW FINALIZED PATIENT (Now added to Roster Store & Payments)
       const newPat = addPatient({
+        uhid: generatedUHID,
         title,
         fullname,
         mobileno,
@@ -604,7 +717,7 @@ export default function PatientRegistrationPage() {
     });
 
   return (
-    <div className="space-y-5 max-w-5xl mx-auto">
+    <div className="space-y-5 w-full">
       
       {/* Top Header with Back to Front Desk Button */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -654,13 +767,17 @@ export default function PatientRegistrationPage() {
                   setShowImportDropdown(true);
                 }}
                 onFocus={() => setShowImportDropdown(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowImportDropdown(true);
+                }}
                 className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-purple-300 dark:border-purple-800 text-xs bg-white dark:bg-slate-900 font-medium text-slate-900 dark:text-slate-100 shadow-xs"
               />
             </div>
 
             {/* Live Search Popup Dropdown */}
             {showImportDropdown && importSearchTerm.trim().length > 0 && (
-              <div className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-800 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto p-1 space-y-1">
+              <div onClick={(e) => e.stopPropagation()} className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-800 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto p-1 space-y-1">
                 <div className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                   <span>Matching Records (Click to Auto-Fill)</span>
                   <button type="button" onClick={() => setShowImportDropdown(false)} className="text-slate-400 hover:text-slate-600 font-bold text-xs px-1">✕</button>
@@ -748,6 +865,10 @@ export default function PatientRegistrationPage() {
                   setShowAppDropdown(true);
                 }}
                 onFocus={() => setShowAppDropdown(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowAppDropdown(true);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -765,7 +886,7 @@ export default function PatientRegistrationPage() {
 
             {/* Popup Dropdown Menu on Click/Focus (Shows 3-4 items visible per scroll, filters live) */}
             {showAppDropdown && (
-              <div className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-800 rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto p-1 space-y-1">
+              <div onClick={(e) => e.stopPropagation()} className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-800 rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto p-1 space-y-1">
                 <div className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                   <span>Today&apos;s Pre-Booked Appointments ({mounted ? filteredAppList.length : 0})</span>
                   <button type="button" onClick={() => setShowAppDropdown(false)} className="text-slate-400 hover:text-slate-600 text-xs font-bold px-1">✕</button>
@@ -882,7 +1003,7 @@ export default function PatientRegistrationPage() {
               <div className="flex flex-col sm:flex-row gap-2.5 items-end w-full">
                 <div className="flex flex-col gap-1 flex-1 w-full">
                   <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400">
-                    Mobile Number (10 Digits) *
+                    Mobile Number *
                   </label>
                   <input
                     type="tel"
@@ -928,147 +1049,139 @@ export default function PatientRegistrationPage() {
 
             </div>
 
-            {/* ROW 2: DOB, Age, Gender, City (Left) || Registration Visit Type & Doctor Name Dropdown (Right) */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 items-end">
+            {/* ROW 2: DOB, Age, Gender, City, Visit Type, Doctor Name */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-end w-full">
               
-              {/* Row 2 Left: DOB (Date of Birth), Age (Y/M/D), Gender, City */}
-              <div className="flex flex-wrap sm:flex-nowrap gap-2 items-end w-full">
-                
-                {/* 1. DOB */}
-                <div className="flex flex-col gap-1 w-32 shrink-0">
-                  <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
-                    Date of Birth (DOB)
-                  </label>
-                  <input
-                    type="date"
-                    value={dob}
-                    onChange={(e) => handleDobChange(e.target.value)}
-                    className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-1.5 font-mono font-bold text-slate-900 dark:text-slate-100 w-full"
-                  />
-                </div>
-
-                {/* 2. Age (With Y/M/D Breakdown) */}
-                <div className="flex flex-col gap-1 w-24 shrink-0">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
-                      Age *
-                    </label>
-                    {ageDisplay && (
-                      <span className="text-[9px] font-extrabold text-teal-700 bg-teal-50 dark:bg-teal-950 px-1 rounded">
-                        {ageDisplay}
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    type="number"
-                    min={0}
-                    max={120}
-                    placeholder="Age"
-                    value={age}
-                    onChange={(e) => handleAgeInputChange(e.target.value)}
-                    className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2 font-bold text-slate-900 dark:text-slate-100 w-full text-center"
-                    required
-                  />
-                </div>
-
-                {/* 3. Gender */}
-                <div className="flex flex-col gap-1 w-24 shrink-0">
-                  <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
-                    Gender *
-                  </label>
-                  <select
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-1 font-bold text-slate-900 dark:text-slate-100 w-full"
-                  >
-                    {GENDER_OPTIONS.map((g) => (
-                      <option key={g} value={g}>{g}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* 4. City (Compact width) */}
-                <div className="flex flex-col gap-1 relative flex-1 min-w-[110px] w-full">
-                  <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Type city..."
-                    value={city}
-                    onChange={(e) => {
-                      setCity(e.target.value);
-                      setShowCityDropdown(true);
-                      setHighlightedCityIndex(0);
-                    }}
-                    onFocus={() => {
-                      setShowCityDropdown(true);
-                      setHighlightedCityIndex(0);
-                    }}
-                    onKeyDown={handleCityKeyDown}
-                    className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2 font-bold text-slate-900 dark:text-slate-100 w-full"
-                  />
-                  {showCityDropdown && filteredCitySuggestions.length > 0 && (
-                    <div className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto p-1 space-y-1">
-                      {filteredCitySuggestions.map((c, idx) => (
-                        <div
-                          key={c}
-                          onClick={() => {
-                            setCity(c);
-                            setShowCityDropdown(false);
-                          }}
-                          className={`px-2.5 py-1.5 cursor-pointer rounded-lg text-xs font-bold transition-all ${
-                            idx === highlightedCityIndex
-                              ? 'bg-teal-600 text-white shadow-sm font-black'
-                              : 'hover:bg-teal-50 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100'
-                          }`}
-                        >
-                          {c}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
+              {/* 1. Date of Birth */}
+              <div className="flex flex-col gap-1 lg:col-span-2">
+                <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
+                  Date of Birth
+                </label>
+                <input
+                  type="date"
+                  value={dob}
+                  max={todayStr || new Date().toISOString().split('T')[0]}
+                  onChange={(e) => handleDobChange(e.target.value)}
+                  className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-1.5 font-mono font-bold text-slate-900 dark:text-slate-100 w-full"
+                />
               </div>
 
-              {/* Row 2 Right: Registration Visit Type & Doctor Name (Doctor Master Dropdown) */}
-              <div className="flex flex-col sm:flex-row gap-2.5 items-end w-full">
-                
-                {/* 1. Registration Visit Type */}
-                <div className="flex flex-col gap-1 w-full sm:w-44 shrink-0">
-                  <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
-                    Registration Visit Type *
-                  </label>
-                  <select
-                    value={visitType}
-                    onChange={(e) => setVisitType(e.target.value)}
-                    className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2 font-extrabold text-slate-900 dark:text-slate-100 w-full"
-                  >
-                    {VISIT_TYPES.map((v) => (
-                      <option key={v} value={v}>{v}</option>
-                    ))}
-                  </select>
-                </div>
+              {/* 2. Age (Dynamic Component-based Input with matching width & keyboard navigation) */}
+              <div className="flex flex-col gap-1 lg:col-span-1 min-w-[85px]">
+                <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
+                  Age *
+                </label>
+                <AgeInput
+                  value={ageDisplay || (age ? `${age} Yrs` : '')}
+                  dob={dob}
+                  onChange={(e) => setAgeDisplay(e.target.value)}
+                  onDobChange={(computedDob) => setDob(computedDob)}
+                  onAgeSelect={({ age: selectedAge, unit: selectedUnit, display: selectedDisplay, dob: computedDob }) => {
+                    setAge(selectedAge);
+                    setAgeUnit(selectedUnit);
+                    setAgeDisplay(selectedDisplay);
+                    setDob(computedDob);
+                  }}
+                  required
+                />
+              </div>
 
-                {/* 2. Doctor Name (Master Dropdown) */}
-                <div className="flex flex-col gap-1 flex-1 w-full">
-                  <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
-                    Doctor Name (Master) *
-                  </label>
-                  <select
-                    value={doctorRef}
-                    onChange={(e) => setDoctorRef(e.target.value)}
-                    className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2 font-bold text-slate-900 dark:text-slate-100 w-full"
-                    required
-                  >
-                    <option value="">-- Select Doctor --</option>
-                    {doctorOptionsList.map((doc) => (
-                      <option key={doc} value={doc}>{doc}</option>
-                    ))}
-                  </select>
-                </div>
+              {/* 3. Gender */}
+              <div className="flex flex-col gap-1 lg:col-span-2 min-w-[85px]">
+                <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
+                  Gender *
+                </label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-1 font-bold text-slate-900 dark:text-slate-100 w-full cursor-pointer"
+                >
+                  {GENDER_OPTIONS.map((g) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
 
+              {/* 4. City */}
+              <div className="flex flex-col gap-1 relative lg:col-span-2 min-w-[100px]">
+                <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
+                  City
+                </label>
+                <input
+                  type="text"
+                  placeholder="Type city..."
+                  value={city}
+                  onChange={(e) => {
+                    setCity(e.target.value);
+                    setShowCityDropdown(true);
+                    setHighlightedCityIndex(0);
+                  }}
+                  onFocus={() => {
+                    setShowCityDropdown(true);
+                    setHighlightedCityIndex(0);
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCityDropdown(true);
+                    setHighlightedCityIndex(0);
+                  }}
+                  onKeyDown={handleCityKeyDown}
+                  className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-2 font-bold text-slate-900 dark:text-slate-100 w-full"
+                />
+                {showCityDropdown && filteredCitySuggestions.length > 0 && (
+                  <div onClick={(e) => e.stopPropagation()} className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto p-1 space-y-1">
+                    {filteredCitySuggestions.map((c, idx) => (
+                      <div
+                        key={c}
+                        onClick={() => {
+                          setCity(c);
+                          setShowCityDropdown(false);
+                        }}
+                        className={`px-2.5 py-1.5 cursor-pointer rounded-lg text-xs font-bold transition-all ${
+                          idx === highlightedCityIndex
+                            ? 'bg-teal-600 text-white shadow-sm font-black'
+                            : 'hover:bg-teal-50 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100'
+                        }`}
+                      >
+                        {c}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 5. Visit Type */}
+              <div className="flex flex-col gap-1 lg:col-span-2 min-w-[110px]">
+                <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
+                  Visit Type *
+                </label>
+                <select
+                  value={visitType}
+                  onChange={(e) => setVisitType(e.target.value)}
+                  className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-1.5 font-extrabold text-slate-900 dark:text-slate-100 w-full cursor-pointer"
+                >
+                  {VISIT_TYPES.map((v) => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 6. Doctor Name */}
+              <div className="flex flex-col gap-1 lg:col-span-3 min-w-[150px]">
+                <label className="text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-400 truncate">
+                  Doctor Name *
+                </label>
+                <select
+                  value={doctorRef}
+                  onChange={(e) => setDoctorRef(e.target.value)}
+                  className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs p-1.5 font-bold text-slate-900 dark:text-slate-100 w-full cursor-pointer"
+                  required
+                >
+                  <option value="">-- Select Doctor --</option>
+                  {doctorOptionsList.map((doc) => (
+                    <option key={doc} value={doc}>{doc}</option>
+                  ))}
+                </select>
               </div>
 
             </div>

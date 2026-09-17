@@ -121,7 +121,7 @@ export default function VitalsInboxPage() {
       
       {/* IF A PATIENT IS SELECTED, SHOW FULL PAGE FORM VIEW! */}
       {activePatient ? (
-        <div className="space-y-5 max-w-4xl mx-auto animate-in fade-in-50">
+        <div className="space-y-5 w-full animate-in fade-in-50">
           
           {/* Header with Back Button */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">

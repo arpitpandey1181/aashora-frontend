@@ -1,34 +1,21 @@
 export const API_ENDPOINTS = {
   // Account / Auth
-  LOGIN: '/Account/Login',
-  LOGOUT: '/Account/Logout',
-  GET_USER_PROFILE: '/Account/GetUserProfile',
+  LOGIN: '/Aashora/GetUserLogin',
+  LOGOUT: '/Aashora/Logout',
 
   // Patients
-  GET_PATIENTS: '/Patient/GetAllPatients',
-  GET_PATIENT_BY_ID: '/Patient/GetPatientById',
-  SAVE_PATIENT: '/Patient/SavePatient',
-  DELETE_PATIENT: '/Patient/DeletePatient',
+  GET_PATIENTS: '/Aashora/GetOrgRegPat',
+  GET_PATIENT_BY_ID: '/Aashora/GetOrgRegPat',
+  SAVE_PATIENT: '/Aashora/SavePatientRegistration',
+  GENERATE_UHID: '/Aashora/GenerateUHID',
 
   // Appointments
-  GET_APPOINTMENTS: '/Appointment/GetAllAppointments',
-  GET_APPOINTMENT_BY_ID: '/Appointment/GetAppointmentById',
-  BOOK_APPOINTMENT: '/Appointment/BookAppointment',
-  UPDATE_APPOINTMENT_STATUS: '/Appointment/UpdateStatus',
-
-  // Doctors
-  GET_DOCTORS: '/Doctor/GetAllDoctors',
-  GET_DOCTOR_SLOTS: '/Doctor/GetAvailableSlots',
+  GET_APPOINTMENTS: '/Aashora/GetAppointments',
+  BOOK_APPOINTMENT: '/Aashora/SaveAppointment',
 
   // Prescriptions
-  GET_PRESCRIPTIONS: '/Prescription/GetAllPrescriptions',
-  SAVE_PRESCRIPTION: '/Prescription/SavePrescription',
-  GET_DRUG_SEARCH: '/Prescription/SearchDrugs',
-
-  // Billing
-  GET_INVOICES: '/Billing/GetAllInvoices',
-  CREATE_INVOICE: '/Billing/CreateInvoice',
-  GET_INVOICE_DETAILS: '/Billing/GetInvoiceById',
+  GET_PRESCRIPTIONS: '/Aashora/GetPrescription',
+  SAVE_PRESCRIPTION: '/Aashora/SavePrescription',
 };
 
 export const APPOINTMENT_STATUS = {

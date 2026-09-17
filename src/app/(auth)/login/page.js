@@ -20,6 +20,8 @@ import {
   HelpCircle,
   X,
   Check,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -31,8 +33,7 @@ export default function LoginPage() {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [location, setLocation] = useState('DEMO AASHORA QA');
-  const [financialYear, setFinancialYear] = useState('2026-2027');
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [termsAccepted, setTermsAccepted] = useState(true);
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -68,17 +69,16 @@ export default function LoginPage() {
         pwd: password,
       });
 
-      const loginBaseUrl = process.env.NEXT_PUBLIC_LOGIN_BASE_URL || 'http://localhost:48570/frmUserLog';
-      const doctorApiUrl = process.env.NEXT_PUBLIC_DOCTOR_API_URL || 'http://localhost:48570/DoctorAPI';
+      const aashoraApiUrl = process.env.NEXT_PUBLIC_AASHORA_API_URL || 'http://localhost:58781/api/Aashora';
 
       let response;
       try {
-        response = await fetch(`${loginBaseUrl}/GetUserLogin?${params}`);
+        response = await fetch(`${aashoraApiUrl}/GetUserLogin?${params}`);
         if (!response.ok) {
-          response = await fetch(`${doctorApiUrl}/GetUserLogin?JsonOrg=${encodeURIComponent(jsonOrgParam)}`);
+          response = await fetch(`${aashoraApiUrl}/GetUserLogin?JsonOrg=${encodeURIComponent(jsonOrgParam)}`);
         }
       } catch {
-        response = await fetch(`${doctorApiUrl}/GetUserLogin?JsonOrg=${encodeURIComponent(jsonOrgParam)}`);
+        response = await fetch(`${aashoraApiUrl}/GetUserLogin?JsonOrg=${encodeURIComponent(jsonOrgParam)}`);
       }
 
       const rawText = await response.text();
@@ -105,25 +105,50 @@ export default function LoginPage() {
         data = cleanText;
       }
 
-      const loginUserObj = data?.Table?.[0] || data?.Table1?.[0] || (Array.isArray(data) ? data[0] : null);
+      if (data?.status === 'FAILED' || cleanText === 'Invalid User ID or PWD' || cleanText === 'Not Registered' || cleanText === '-1') {
+        const errorMsg = data?.message || (cleanText === '-1' ? 'Access not allowed for this IP/Device' : cleanText);
+        toast.error(`Login Failed: ${errorMsg}`);
+        return;
+      }
 
-      if (loginUserObj || (typeof data === 'object' && data && !data.error)) {
+      // Handle both JWT response object format { data: ds, access_token: "..." } and raw dataset format
+      const userDataset = data?.data || data;
+      const loginUserObj = userDataset?.Table?.[0] || userDataset?.Table1?.[0] || (Array.isArray(userDataset) ? userDataset[0] : null);
+
+      if (loginUserObj || (typeof userDataset === 'object' && userDataset && !userDataset.error)) {
         const activeLocation = loginUserObj?.locationname || loginUserObj?.locationName || 'DEMO SOFTY CARE QA';
-        const activeEmpName = loginUserObj?.empname || loginUserObj?.empName || username;
+        const activeEmpName = loginUserObj?.drname || loginUserObj?.drName || loginUserObj?.doctorname || loginUserObj?.doctorName || loginUserObj?.empname || loginUserObj?.empName || loginUserObj?.fullname || loginUserObj?.fullName || loginUserObj?.userloginname || username;
 
-        setLocation(activeLocation);
         toast.success(`Welcome back ${activeEmpName}! Logged in successfully.`);
 
         const sessionUser = {
           ...loginUserObj,
           username: username,
           empname: activeEmpName,
+          drname: loginUserObj?.drname || loginUserObj?.drName || activeEmpName,
           locationname: activeLocation,
           loginTime: Date.now(),
         };
 
+        const jwtToken = data?.access_token || data?.accessToken || 'session_active_' + Date.now();
+        const refreshToken = data?.refresh_token || data?.refreshToken;
+        if (refreshToken) {
+          localStorage.setItem('softycare_refresh_token', refreshToken);
+        }
+
+        // Store assigned locations list if returned by backend API
+        const rawLocations = data?.locations || userDataset?.Table1 || userDataset?.Table2 || [];
+        const parsedLocations = Array.isArray(rawLocations) && rawLocations.length > 0
+          ? rawLocations
+          : [{ locationid: loginUserObj?.locationid || 1, locationname: activeLocation }];
+        localStorage.setItem('softycare_locations', JSON.stringify(parsedLocations));
+
         localStorage.setItem('softycare_user', JSON.stringify(sessionUser));
-        localStorage.setItem('softycare_token', 'session_active_' + Date.now());
+        localStorage.setItem('softycare_active_location', JSON.stringify({
+          locationid: loginUserObj?.locationid || 1,
+          locationname: activeLocation,
+        }));
+        localStorage.setItem('softycare_token', jwtToken);
         router.push('/frontdesk');
       } else {
         toast.error('Login Failed: Invalid Username or Password!');
@@ -131,20 +156,21 @@ export default function LoginPage() {
     } catch (err) {
       setLoading(false);
       console.error('[LOGIN API ERROR]:', err);
-      toast.error('Unable to connect to backend server. Please check Visual Studio on port 48570.');
+      toast.error('Unable to connect to backend server. Please check Visual Studio on port 58781.');
     }
   };
 
   const [mobileTab, setMobileTab] = useState('login'); // 'login' | 'features'
 
   return (
-    <div className="min-h-screen lg:h-screen w-full bg-gradient-to-br from-emerald-50/80 via-teal-50/50 to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center p-2.5 sm:p-4 lg:p-6 relative overflow-y-auto lg:overflow-hidden">
-      {/* Background Soft Light-Green Glow Orbs */}
-      <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-emerald-400/20 dark:bg-emerald-500/10 rounded-full blur-[130px] pointer-events-none animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] bg-sky-400/20 dark:bg-sky-500/10 rounded-full blur-[130px] pointer-events-none animate-pulse" />
+    <div className="fixed inset-0 w-full h-full bg-gradient-to-br from-emerald-100/95 via-teal-50/80 to-sky-100/95 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center p-3 sm:p-5 lg:p-8 overflow-hidden select-none z-50">
+      {/* Full Screen Light-Green & Sky-Blue Ambient Glow Orbs */}
+      <div className="absolute -top-24 -left-24 w-[650px] h-[650px] bg-emerald-400/35 dark:bg-emerald-500/15 rounded-full blur-[150px] pointer-events-none animate-pulse" />
+      <div className="absolute -bottom-24 -right-24 w-[650px] h-[650px] bg-sky-400/35 dark:bg-sky-500/15 rounded-full blur-[150px] pointer-events-none animate-pulse" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[750px] h-[750px] bg-teal-300/25 dark:bg-teal-600/10 rounded-full blur-[170px] pointer-events-none" />
 
       {/* Main 2-Column Split Portal Container */}
-      <div className="w-full max-w-5xl my-auto grid grid-cols-1 lg:grid-cols-12 rounded-3xl border border-emerald-200/80 dark:border-teal-900/40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl shadow-2xl z-10 overflow-hidden lg:max-h-[92vh]">
+      <div className="w-full max-w-5xl my-auto grid grid-cols-1 lg:grid-cols-12 rounded-3xl border border-emerald-200/90 dark:border-teal-900/50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl shadow-2xl z-10 overflow-hidden max-h-[96vh] lg:max-h-[92vh]">
         
         {/* Left Column: AASHORA Showcase (Visible on Desktop lg:flex, or on mobile when features tab active) */}
         <div className={`p-5 sm:p-7 lg:p-8 bg-gradient-to-br from-emerald-50/90 via-teal-50/70 to-sky-50/80 dark:from-teal-950/50 dark:via-slate-900 dark:to-sky-950/40 flex-col justify-between border-b lg:border-b-0 lg:border-r border-teal-100 dark:border-slate-800 relative ${mobileTab === 'features' ? 'flex col-span-1' : 'hidden lg:flex lg:col-span-6'}`}>
@@ -263,46 +289,27 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Password Field */}
+              {/* Password Field with Eye Toggle */}
               <div className="space-y-1">
                 <label className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Password *</label>
                 <div className="relative">
                   <Lock className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter Password"
-                    className="w-full h-9 sm:h-10 pl-9 pr-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full h-9 sm:h-10 pl-9 pr-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                     required
                   />
-                </div>
-              </div>
-
-              {/* Clinic Location & Financial Year Selectors */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <label className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Location Branch *</label>
-                  <select
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="w-full h-9 sm:h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 px-2.5 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500"
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 focus:outline-none"
+                    aria-label="Toggle password visibility"
                   >
-                    <option value="DEMO AASHORA QA">DEMO AASHORA QA</option>
-                    <option value="MAIN CLINIC BRANCH">MAIN AASHORA CENTER #1</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Financial Year *</label>
-                  <select
-                    value={financialYear}
-                    onChange={(e) => setFinancialYear(e.target.value)}
-                    className="w-full h-9 sm:h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 px-2.5 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="2026-2027">2026 - 2027</option>
-                    <option value="2025-2026">2025 - 2026</option>
-                  </select>
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 

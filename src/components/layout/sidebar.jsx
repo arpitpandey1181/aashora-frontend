@@ -66,7 +66,7 @@ export function SidebarContent({ onClose }) {
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden"
+              className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden"
             >
               <X className="w-5 h-5" />
             </button>
@@ -120,8 +120,30 @@ export function SidebarContent({ onClose }) {
         {/* Red Logout Button */}
         <button
           type="button"
-          onClick={() => {
+          onClick={async () => {
             if (onClose) onClose();
+            if (typeof window !== 'undefined') {
+              const token = localStorage.getItem('softycare_token');
+              const aashoraApiUrl = process.env.NEXT_PUBLIC_AASHORA_API_URL || 'http://localhost:58781/api/Aashora';
+              if (token && !token.startsWith('session_active_')) {
+                try {
+                  await fetch(`${aashoraApiUrl}/Logout`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${token}`,
+                      'Content-Type': 'application/json'
+                    }
+                  });
+                } catch (e) {
+                  console.error('[LOGOUT API ERROR]:', e);
+                }
+              }
+
+              localStorage.removeItem('softycare_user');
+              localStorage.removeItem('softycare_token');
+              localStorage.removeItem('softycare_active_location');
+              localStorage.removeItem('softycare_locations');
+            }
             toast.success('Logged out successfully!');
             router.push('/login');
           }}
@@ -137,7 +159,7 @@ export function SidebarContent({ onClose }) {
 
 export function Sidebar() {
   return (
-    <aside className="hidden lg:block w-64 h-screen sticky top-0 shrink-0">
+    <aside className="hidden md:block w-64 h-screen sticky top-0 shrink-0 border-r border-slate-200 dark:border-slate-800">
       <SidebarContent />
     </aside>
   );
@@ -153,14 +175,14 @@ export function MobileSidebar({ isOpen, onClose }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm md:hidden"
           />
           <motion.div
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-slate-900 shadow-2xl lg:hidden"
+            className="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-slate-900 shadow-2xl md:hidden"
           >
             <SidebarContent onClose={onClose} />
           </motion.div>

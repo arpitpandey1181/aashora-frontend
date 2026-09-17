@@ -44,7 +44,7 @@ const SEVERITY_OPTIONS = ['Mild', 'Moderate', 'Severe', 'Profound'];
 // Helper to generate dynamic duration dropdown suggestions based on numeric typing (e.g. 1 -> 1 Day, 1 Week, 1 Month, 1 Year | 15 -> 15 Days, 15 Weeks, 15 Months, 15 Years)
 function getDynamicDurationOptions(inputVal) {
   if (!inputVal || !inputVal.toString().trim()) {
-    return ['3 Days', '5 Days', '7 Days', '10 Days', '14 Days', '1 Month', '2 Months', '3 Months', '6 Months', '1 Year', 'Continue'];
+    return [];
   }
 
   const str = inputVal.toString().trim();
@@ -66,9 +66,18 @@ function getDynamicDurationOptions(inputVal) {
     ];
   }
 
-  const defaults = ['3 Days', '5 Days', '7 Days', '10 Days', '14 Days', '1 Month', '2 Months', '3 Months', '6 Months', '1 Year', 'Continue'];
-  const filtered = defaults.filter((d) => d.toLowerCase().includes(str.toLowerCase()));
-  return filtered.length > 0 ? filtered : [`${str} Days`, `${str} Weeks`, `${str} Months`, `${str} Years`, 'Continue'];
+  return [];
+}
+
+// Helper to format raw typed numeric duration into full string (e.g., 1 -> 1 Day, 3 -> 3 Days, 15 -> 15 Days)
+function formatRawDuration(inputVal) {
+  if (!inputVal || !inputVal.toString().trim()) return '';
+  const str = inputVal.toString().trim();
+  if (/^\d+$/.test(str)) {
+    const num = parseInt(str, 10);
+    return `${num} ${num === 1 ? 'Day' : 'Days'}`;
+  }
+  return str;
 }
 
 function PrescriptionFormContent() {
@@ -81,17 +90,6 @@ function PrescriptionFormContent() {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  if (!mounted) {
-    return (
-      <div className="p-8 flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-3 text-teal-600 font-bold text-sm">
-          <div className="w-5 h-5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
-          Loading E-Prescription Creator...
-        </div>
-      </div>
-    );
-  }
 
   const {
     currentUser,
@@ -232,6 +230,69 @@ function PrescriptionFormContent() {
   const [computedFollowUpDate, setComputedFollowUpDate] = useState(formatDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)));
 
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [highlightedDropdownIndex, setHighlightedDropdownIndex] = useState(0);
+
+  const formatAllGridDurations = () => {
+    setPastHistoryList((prev) =>
+      prev.map((item) => (/^\d+$/.test((item.duration || '').toString().trim()) ? { ...item, duration: formatRawDuration(item.duration) } : item))
+    );
+    setComplaintsList((prev) =>
+      prev.map((item) => (/^\d+$/.test((item.duration || '').toString().trim()) ? { ...item, duration: formatRawDuration(item.duration) } : item))
+    );
+    setDiagnosisList((prev) =>
+      prev.map((item) => (/^\d+$/.test((item.duration || '').toString().trim()) ? { ...item, duration: formatRawDuration(item.duration) } : item))
+    );
+    setMedicinesList((prev) =>
+      prev.map((item) => (/^\d+$/.test((item.duration || '').toString().trim()) ? { ...item, duration: formatRawDuration(item.duration) } : item))
+    );
+  };
+
+  // Close active dropdown on clicking anywhere outside on the document & format raw duration inputs
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      formatAllGridDurations();
+      setActiveDropdown(null);
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, []);
+
+  // Keyboard navigation (ArrowUp, ArrowDown, Enter, Tab, Escape) for Duration dropdown options
+  const handleDurationKeyDown = (e, grid, rowId, currentVal, updateRowFn, nextCol) => {
+    const options = getDynamicDurationOptions(currentVal);
+    if (!options || options.length === 0) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const formatted = formatRawDuration(currentVal);
+        if (formatted !== currentVal) {
+          updateRowFn(rowId, 'duration', formatted);
+        }
+        setActiveDropdown(null);
+        if (nextCol) focusNextCell(grid, rowId, nextCol);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedDropdownIndex((prev) => Math.min(prev + 1, options.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedDropdownIndex((prev) => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      const selected = options[highlightedDropdownIndex] || options[0] || formatRawDuration(currentVal);
+      updateRowFn(rowId, 'duration', selected);
+      setActiveDropdown(null);
+      if (nextCol) {
+        focusNextCell(grid, rowId, nextCol);
+      }
+    } else if (e.key === 'Escape') {
+      setActiveDropdown(null);
+    }
+  };
 
   // References to input elements for seamless column-to-column auto-focusing
   const cellRefs = useRef({});
@@ -254,6 +315,17 @@ function PrescriptionFormContent() {
       }
     }, 50);
   };
+
+  if (!mounted) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-3 text-teal-600 font-bold text-sm">
+          <div className="w-5 h-5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+          Loading E-Prescription Creator...
+        </div>
+      </div>
+    );
+  }
 
   // Add Custom Allergy to Master Option List & Auto Select
   const handleAddCustomAllergy = () => {
@@ -305,7 +377,7 @@ function PrescriptionFormContent() {
 
   const handleAddHistoryRow = () => {
     const newId = Date.now();
-    setPastHistoryList([...pastHistoryList, { id: newId, condition: '', duration: '1 Year', notes: '' }]);
+    setPastHistoryList([...pastHistoryList, { id: newId, condition: '', duration: '', notes: '' }]);
   };
 
   // Add Custom Lab Scan Option to Master List
@@ -368,17 +440,17 @@ function PrescriptionFormContent() {
 
   const handleAddComplaintRow = () => {
     const newId = Date.now();
-    setComplaintsList([...complaintsList, { id: newId, name: '', frequency: 'Daily', severity: 'Moderate', duration: '7 Days', notes: '' }]);
+    setComplaintsList([...complaintsList, { id: newId, name: '', frequency: 'Daily', severity: 'Moderate', duration: '', notes: '' }]);
   };
 
   const handleAddDiagnosisRow = () => {
     const newId = Date.now();
-    setDiagnosisList([...diagnosisList, { id: newId, name: '', duration: '1 Months', date: formatDate(new Date()), showDateCalendar: false }]);
+    setDiagnosisList([...diagnosisList, { id: newId, name: '', duration: '', date: formatDate(new Date()), showDateCalendar: false }]);
   };
 
   const handleAddMedicineRow = () => {
     const newId = Date.now();
-    setMedicinesList([...medicinesList, { id: newId, name: '', dose: '1 - 0 - 1', when: 'After Food', frequency: 'Daily', duration: '5 Days', notes: '' }]);
+    setMedicinesList([...medicinesList, { id: newId, name: '', dose: '1 - 0 - 1', when: 'After Food', frequency: 'Daily', duration: '', notes: '' }]);
   };
 
   // Auto-Appending Row Helpers (Automatically appends the next row when data is filled in the last row!)
@@ -934,14 +1006,24 @@ function PrescriptionFormContent() {
                           onChange={(e) => {
                             const val = e.target.value;
                             updatePastHistoryRow(item.id, 'duration', val);
+                            setHighlightedDropdownIndex(0);
                             setActiveDropdown({ id: item.id, col: 'dur', grid: 'hist' });
                           }}
-                          onClick={(e) => { e.stopPropagation(); setActiveDropdown({ id: item.id, col: 'dur', grid: 'hist' }); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setHighlightedDropdownIndex(0);
+                            setActiveDropdown({ id: item.id, col: 'dur', grid: 'hist' });
+                          }}
+                          onKeyDown={(e) => handleDurationKeyDown(e, 'hist', item.id, item.duration, updatePastHistoryRow, 'notes')}
+                          onBlur={() => {
+                            const formatted = formatRawDuration(item.duration);
+                            if (formatted !== item.duration) updatePastHistoryRow(item.id, 'duration', formatted);
+                          }}
                           className="w-full h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs px-2 font-bold"
                         />
-                        {activeDropdown?.id === item.id && activeDropdown?.col === 'dur' && activeDropdown?.grid === 'hist' && (
+                        {activeDropdown?.id === item.id && activeDropdown?.col === 'dur' && activeDropdown?.grid === 'hist' && getDynamicDurationOptions(item.duration).length > 0 && (
                           <div className="absolute left-0 top-full mt-1 w-36 max-h-44 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 p-1 space-y-1">
-                            {getDynamicDurationOptions(item.duration).map((d) => (
+                            {getDynamicDurationOptions(item.duration).map((d, idx) => (
                               <div
                                 key={d}
                                 onClick={(e) => {
@@ -949,7 +1031,12 @@ function PrescriptionFormContent() {
                                   updatePastHistoryRow(item.id, 'duration', d);
                                   focusNextCell('hist', item.id, 'notes');
                                 }}
-                                className="px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-semibold rounded text-slate-800 dark:text-slate-200"
+                                onMouseEnter={() => setHighlightedDropdownIndex(idx)}
+                                className={`px-2 py-1 text-xs cursor-pointer font-semibold rounded transition-colors ${
+                                  idx === highlightedDropdownIndex
+                                    ? 'bg-teal-600 text-white font-bold'
+                                    : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
+                                }`}
                               >
                                 {d}
                               </div>
@@ -1111,14 +1198,24 @@ function PrescriptionFormContent() {
                           onChange={(e) => {
                             const val = e.target.value;
                             updateComplaintRow(item.id, 'duration', val);
+                            setHighlightedDropdownIndex(0);
                             setActiveDropdown({ id: item.id, col: 'dur', grid: 'comp' });
                           }}
-                          onClick={(e) => { e.stopPropagation(); setActiveDropdown({ id: item.id, col: 'dur', grid: 'comp' }); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setHighlightedDropdownIndex(0);
+                            setActiveDropdown({ id: item.id, col: 'dur', grid: 'comp' });
+                          }}
+                          onKeyDown={(e) => handleDurationKeyDown(e, 'comp', item.id, item.duration, updateComplaintRow, 'notes')}
+                          onBlur={() => {
+                            const formatted = formatRawDuration(item.duration);
+                            if (formatted !== item.duration) updateComplaintRow(item.id, 'duration', formatted);
+                          }}
                           className="w-full h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs px-2 font-bold"
                         />
-                        {activeDropdown?.id === item.id && activeDropdown?.col === 'dur' && activeDropdown?.grid === 'comp' && (
+                        {activeDropdown?.id === item.id && activeDropdown?.col === 'dur' && activeDropdown?.grid === 'comp' && getDynamicDurationOptions(item.duration).length > 0 && (
                           <div className="absolute left-0 top-full mt-1 w-36 max-h-44 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 p-1 space-y-1">
-                            {getDynamicDurationOptions(item.duration).map((d) => (
+                            {getDynamicDurationOptions(item.duration).map((d, idx) => (
                               <div
                                 key={d}
                                 onClick={(e) => {
@@ -1126,7 +1223,12 @@ function PrescriptionFormContent() {
                                   updateComplaintRow(item.id, 'duration', d);
                                   focusNextCell('comp', item.id, 'notes');
                                 }}
-                                className="px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-semibold rounded text-slate-800 dark:text-slate-200"
+                                onMouseEnter={() => setHighlightedDropdownIndex(idx)}
+                                className={`px-2 py-1 text-xs cursor-pointer font-semibold rounded transition-colors ${
+                                  idx === highlightedDropdownIndex
+                                    ? 'bg-teal-600 text-white font-bold'
+                                    : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
+                                }`}
                               >
                                 {d}
                               </div>
@@ -1229,14 +1331,24 @@ function PrescriptionFormContent() {
                           onChange={(e) => {
                             const val = e.target.value;
                             updateDiagnosisRow(item.id, 'duration', val);
+                            setHighlightedDropdownIndex(0);
                             setActiveDropdown({ id: item.id, col: 'dur', grid: 'diag' });
                           }}
-                          onClick={(e) => { e.stopPropagation(); setActiveDropdown({ id: item.id, col: 'dur', grid: 'diag' }); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setHighlightedDropdownIndex(0);
+                            setActiveDropdown({ id: item.id, col: 'dur', grid: 'diag' });
+                          }}
+                          onKeyDown={(e) => handleDurationKeyDown(e, 'diag', item.id, item.duration, updateDiagnosisRow, null)}
+                          onBlur={() => {
+                            const formatted = formatRawDuration(item.duration);
+                            if (formatted !== item.duration) updateDiagnosisRow(item.id, 'duration', formatted);
+                          }}
                           className="w-full h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs px-2 font-bold"
                         />
-                        {activeDropdown?.id === item.id && activeDropdown?.col === 'dur' && activeDropdown?.grid === 'diag' && (
+                        {activeDropdown?.id === item.id && activeDropdown?.col === 'dur' && activeDropdown?.grid === 'diag' && getDynamicDurationOptions(item.duration).length > 0 && (
                           <div className="absolute left-0 top-full mt-1 w-36 max-h-44 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 p-1 space-y-1">
-                            {getDynamicDurationOptions(item.duration).map((d) => (
+                            {getDynamicDurationOptions(item.duration).map((d, idx) => (
                               <div
                                 key={d}
                                 onClick={(e) => {
@@ -1244,7 +1356,12 @@ function PrescriptionFormContent() {
                                   updateDiagnosisRow(item.id, 'duration', d);
                                   setActiveDropdown(null);
                                 }}
-                                className="px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-semibold rounded text-slate-800 dark:text-slate-200"
+                                onMouseEnter={() => setHighlightedDropdownIndex(idx)}
+                                className={`px-2 py-1 text-xs cursor-pointer font-semibold rounded transition-colors ${
+                                  idx === highlightedDropdownIndex
+                                    ? 'bg-teal-600 text-white font-bold'
+                                    : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
+                                }`}
                               >
                                 {d}
                               </div>
@@ -1424,14 +1541,24 @@ function PrescriptionFormContent() {
                           onChange={(e) => {
                             const val = e.target.value;
                             updateMedicineRow(item.id, 'duration', val);
+                            setHighlightedDropdownIndex(0);
                             setActiveDropdown({ id: item.id, col: 'duration', grid: 'rx' });
                           }}
-                          onClick={(e) => { e.stopPropagation(); setActiveDropdown({ id: item.id, col: 'duration', grid: 'rx' }); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setHighlightedDropdownIndex(0);
+                            setActiveDropdown({ id: item.id, col: 'duration', grid: 'rx' });
+                          }}
+                          onKeyDown={(e) => handleDurationKeyDown(e, 'rx', item.id, item.duration, updateMedicineRow, 'notes')}
+                          onBlur={() => {
+                            const formatted = formatRawDuration(item.duration);
+                            if (formatted !== item.duration) updateMedicineRow(item.id, 'duration', formatted);
+                          }}
                           className="w-full h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs px-2 font-bold"
                         />
-                        {activeDropdown?.id === item.id && activeDropdown?.col === 'duration' && activeDropdown?.grid === 'rx' && (
+                        {activeDropdown?.id === item.id && activeDropdown?.col === 'duration' && activeDropdown?.grid === 'rx' && getDynamicDurationOptions(item.duration).length > 0 && (
                           <div className="absolute left-0 top-full mt-1 w-36 max-h-44 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 p-1 space-y-1">
-                            {getDynamicDurationOptions(item.duration).map((d) => (
+                            {getDynamicDurationOptions(item.duration).map((d, idx) => (
                               <div
                                 key={d}
                                 onClick={(e) => {
@@ -1439,7 +1566,12 @@ function PrescriptionFormContent() {
                                   updateMedicineRow(item.id, 'duration', d);
                                   focusNextCell('rx', item.id, 'notes');
                                 }}
-                                className="px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-semibold rounded text-slate-800 dark:text-slate-200"
+                                onMouseEnter={() => setHighlightedDropdownIndex(idx)}
+                                className={`px-2 py-1 text-xs cursor-pointer font-semibold rounded transition-colors ${
+                                  idx === highlightedDropdownIndex
+                                    ? 'bg-teal-600 text-white font-bold'
+                                    : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
+                                }`}
                               >
                                 {d}
                               </div>

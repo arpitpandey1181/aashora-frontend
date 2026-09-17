@@ -16,7 +16,8 @@ export default function DashboardLayout({ children }) {
       const user = localStorage.getItem('softycare_user');
       const token = localStorage.getItem('softycare_token');
 
-      if (!user && !token) {
+      if (!user || !token || token.trim() === '') {
+        setIsAuthorized(false);
         router.replace('/login');
       } else {
         setIsAuthorized(true);
@@ -36,7 +37,7 @@ export default function DashboardLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col lg:flex-row antialiased selection:bg-teal-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row antialiased selection:bg-teal-500 selection:text-white">
       {/* Desktop Navigation Sidebar */}
       <Sidebar />
 
@@ -55,7 +56,7 @@ export default function DashboardLayout({ children }) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="max-w-7xl mx-auto"
+            className="w-full max-w-[1920px] mx-auto"
           >
             {children}
           </motion.div>

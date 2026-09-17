@@ -14,6 +14,7 @@ export default function FrontDeskInboxPage() {
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [userInfo, setUserInfo] = useState(null);
+  const [activeLocation, setActiveLocation] = useState(null);
 
   useEffect(() => {
     setMounted(true);
@@ -24,12 +25,26 @@ export default function FrontDeskInboxPage() {
           setUserInfo(JSON.parse(stored));
         } catch { }
       }
+
+      const activeLocStr = localStorage.getItem('softycare_active_location');
+      if (activeLocStr) {
+        try { setActiveLocation(JSON.parse(activeLocStr)); } catch { }
+      }
+
+      const handleLocChange = (e) => {
+        if (e.detail) {
+          setActiveLocation(e.detail);
+        }
+      };
+
+      window.addEventListener('softycare_location_changed', handleLocChange);
+      return () => window.removeEventListener('softycare_location_changed', handleLocChange);
     }
   }, []);
 
-  const loggedInEmpName = userInfo?.empname || userInfo?.empName || currentUser?.doctorName || 'DR. BM JAYSWAL';
-  const loggedInLocation = userInfo?.locationname || userInfo?.locationName || 'DEMO SOFTY CARE QA';
-  const loggedInRole = userInfo?.proftype || currentUser?.role || 'PATHOLOGIST';
+  const loggedInEmpName = userInfo?.empname || userInfo?.empName || currentUser?.doctorName || 'CONSULTANT DOCTOR';
+  const loggedInLocation = activeLocation?.locationname || userInfo?.locationname || userInfo?.locationName || 'MAIN BRANCH';
+  const loggedInRole = userInfo?.proftype || userInfo?.designation || currentUser?.role || 'CONSULTANT DOCTOR';
 
   const handleSendForVitals = (patId, name) => {
     sendForVitals(patId);
@@ -47,6 +62,12 @@ export default function FrontDeskInboxPage() {
   };
 
   const filteredPatients = (patients || []).filter((p) => {
+    if (activeLocation?.locationid && p.locationid) {
+      if (String(p.locationid) !== String(activeLocation.locationid)) {
+        return false;
+      }
+    }
+
     const docRef = (p.doctorRef || '').toLowerCase();
     const curDocName = (currentUser?.doctorName || '').toLowerCase();
     const curFirstName = (currentUser?.doctorName || '').replace(/^dr\.\s*/i, '').trim().split(' ')[0].toLowerCase();

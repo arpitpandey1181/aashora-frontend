@@ -2,39 +2,110 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 
+ * ===================================================================
+ * AASHORA CLINIC OS - GLOBAL THEME COLOR VARIABLES CONTROL CENTER
+ * Changing any variable value here instantly updates the entire app!
+ * ===================================================================
+ */
+
 :root {
+  /* Primary Brand Theme Colors (Teal / Medical Emerald) */
+  --primary: #0d9488;
+  --primary-hover: #0f766e;
+  --primary-light: #f0fdf4;
+  --primary-border: #a7f3d0;
+  --primary-text: #065f46;
+
+  /* Global Button Color Tokens (Change button colors here!) */
+  --btn-primary-bg: #0d9488;
+  --btn-primary-hover: #0f766e;
+  --btn-primary-text: #ffffff;
+
+  --btn-danger-bg: #f43f5e;
+  --btn-danger-hover: #e11d48;
+  --btn-danger-text: #ffffff;
+
+  /* Secondary Accent Colors (Sky Blue) */
+  --secondary: #0284c7;
+  --secondary-hover: #0369a1;
+  --secondary-light: #f0f9ff;
+
+  /* Purple Category Tokens */
+  --purple-brand: #8b5cf6;
+  --purple-light: #f5f3ff;
+
+  /* Status Colors */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #f43f5e;
+  --info: #3b82f6;
+
+  /* Global Surfaces & Layout (Light Mode) */
   --background: #f8fafc;
   --foreground: #0f172a;
-
-  /* Card & Surface Tokens */
   --card-bg: #ffffff;
   --card-border: #e2e8f0;
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --text-muted: #64748b;
 
-  /* Global Button Theme Tokens (Light Mode) */
+  /* Outline & Ghost Button Tokens */
   --btn-outline-bg: #ffffff;
   --btn-outline-text: #0f172a;
   --btn-outline-border: #cbd5e1;
   --btn-outline-hover-bg: #f1f5f9;
-
   --btn-ghost-bg: transparent;
   --btn-ghost-text: #334155;
   --btn-ghost-hover-bg: #f1f5f9;
 }
 
 .dark {
+  /* Primary Brand Theme Colors (Dark Mode) */
+  --primary: #14b8a6;
+  --primary-hover: #2dd4bf;
+  --primary-light: #064e3b;
+  --primary-border: #047857;
+  --primary-text: #6ee7b7;
+
+  /* Global Button Color Tokens (Dark Mode) */
+  --btn-primary-bg: #14b8a6;
+  --btn-primary-hover: #2dd4bf;
+  --btn-primary-text: #0f172a;
+
+  --btn-danger-bg: #fb7185;
+  --btn-danger-hover: #f43f5e;
+  --btn-danger-text: #0f172a;
+
+  /* Secondary Accent Colors */
+  --secondary: #38bdf8;
+  --secondary-hover: #7dd3fc;
+  --secondary-light: #075985;
+
+  /* Purple Category Tokens */
+  --purple-brand: #a78bfa;
+  --purple-light: #4c1d95;
+
+  /* Status Colors (Dark Mode) */
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+  --info: #60a5fa;
+
+  /* Global Surfaces & Layout (Dark Mode) */
   --background: #090d16;
   --foreground: #f8fafc;
-
-  /* Card & Surface Tokens */
   --card-bg: #0f172a;
   --card-border: #1e293b;
+  --input-bg: #0f172a;
+  --input-border: #334155;
+  --text-muted: #94a3b8;
 
-  /* Global High-Contrast Button Theme Tokens (Dark Mode) */
+  /* Outline & Ghost Button Tokens (Dark Mode) */
   --btn-outline-bg: #1e293b;
   --btn-outline-text: #f8fafc;
   --btn-outline-border: #334155;
   --btn-outline-hover-bg: #334155;
-
   --btn-ghost-bg: transparent;
   --btn-ghost-text: #e2e8f0;
   --btn-ghost-hover-bg: #1e293b;
@@ -65,10 +136,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #0d9488;
+  background: var(--primary);
 }
 
-/* Global High-Contrast Utilities */
+/* Global High-Contrast Component Classes */
 @layer components {
   .btn-contrast-outline {
     background-color: var(--btn-outline-bg);
