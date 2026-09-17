@@ -2,16 +2,51 @@ import { apiClient } from '@/lib/api-client';
 import { API_ENDPOINTS } from '@/lib/constants';
 
 export const patientService = {
-  // Fetch all patients from .NET PatientController.cs
+  // Fetch all patients from .NET AashoraAPIController (SP: getregisterdpatientapi)
   getAllPatients: async (searchQuery = '') => {
     try {
       const response = await apiClient.get(API_ENDPOINTS.GET_PATIENTS, {
         params: { search: searchQuery },
       });
-      return response;
+
+      let rawList = [];
+      if (response && response.patients) {
+        if (Array.isArray(response.patients)) {
+          rawList = response.patients;
+        } else if (response.patients.Table && Array.isArray(response.patients.Table)) {
+          rawList = response.patients.Table;
+        } else if (response.patients.Tables && response.patients.Tables[0]) {
+          rawList = response.patients.Tables[0];
+        }
+      }
+
+      return rawList.map((row, idx) => ({
+        gsspatid: Number(row.gssuhid || row.gsspatid || row.pgssuhid || (idx + 1001)),
+        regId: row.uhid || row.puhid || `REG-${row.gssuhid || (idx + 1001)}`,
+        title: row.initialname || row.title || (row.genderid === 2 ? 'Mrs.' : 'Mr.'),
+        firstname: row.firstname || row.fname || '',
+        midname: row.midname || row.mname || '',
+        lastname: row.lastname || row.lname || '',
+        fullname: row.fullname || `${row.firstname || row.fname || ''} ${row.lastname || row.lname || ''}`.trim(),
+        mobileno: row.mobileno || row.mobile || '',
+        whatsappno: row.whatsappno || row.mobileno || '',
+        dob: row.dob || '',
+        ageDisplay: row.age ? `${row.age} Yrs` : '',
+        age: Number(row.age) || 30,
+        gender: row.gendername || (row.genderid === 2 ? 'Female' : 'Male'),
+        city: row.cityname || row.city || '',
+        address: row.address || '',
+        remark: row.remark || '',
+        visitType: row.visittype || 'First Visit',
+        doctorRef: row.doctorname || row.doctorRef || 'General',
+        status: row.status || 'Registered',
+        checkInStatus: row.checkInStatus || 'Registered',
+        registrationdate: row.regdatetime || row.entdatetime || new Date().toISOString().split('T')[0],
+        isFinalized: true
+      }));
     } catch (error) {
       console.error('Error fetching patients:', error);
-      throw error;
+      return [];
     }
   },
 
