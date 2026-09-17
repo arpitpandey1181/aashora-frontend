@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Inbox, UserPlus, Calendar, Search, CheckCircle, Clock, Activity, Check, ArrowRight, Users, Stethoscope, Sparkles, Zap } from 'lucide-react';
 import { useClinicStore } from '@/store/clinic-store';
+import { patientService } from '@/services/patientService';
 import { toast } from 'sonner';
 
 export default function FrontDeskInboxPage() {
-  const { currentUser, patients, appointments, sendForVitals, checkInPatient, checkOutPatient } = useClinicStore();
+  const { currentUser, patients, setDbPatients, appointments, sendForVitals, checkInPatient, checkOutPatient } = useClinicStore();
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [userInfo, setUserInfo] = useState(null);
@@ -38,6 +39,16 @@ export default function FrontDeskInboxPage() {
       };
 
       window.addEventListener('softycare_location_changed', handleLocChange);
+
+      // Live DB Patients fetch from backend API
+      patientService.getAllPatients()
+        .then((livePatients) => {
+          if (livePatients && livePatients.length > 0) {
+            setDbPatients(livePatients);
+          }
+        })
+        .catch(() => {});
+
       return () => window.removeEventListener('softycare_location_changed', handleLocChange);
     }
   }, []);

@@ -12,6 +12,8 @@ import { useClinicStore, DOCTORS_MASTER_LIST } from '@/store/clinic-store';
 import { searchIndiaLocationsInstant, prefetchIndiaCitiesFromAPI } from '@/config/india-location-data';
 import { formatDate } from '@/lib/utils';
 import { patientService } from '@/services/patientService';
+import { apiClient } from '@/lib/api-client';
+import { API_ENDPOINTS } from '@/lib/constants';
 import { toast } from 'sonner';
 
 const TITLE_OPTIONS = ['Mr.', 'Mrs.', 'Miss', 'Master', 'Dr.', 'Prof.'];
@@ -22,7 +24,7 @@ const VISIT_TYPES = ['First Visit', 'Appointment', 'Follow-Up'];
 export default function PatientRegistrationPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const { currentUser, patients, doctors, doctorsMaster, addPatient, updatePatient, appointments, addPatientReport } = useClinicStore();
+  const { currentUser, patients, setDbPatients, doctors, doctorsMaster, addPatient, updatePatient, appointments, addPatientReport } = useClinicStore();
 
   const [todayStr, setTodayStr] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -38,7 +40,7 @@ export default function PatientRegistrationPage() {
     setToDate(today);
     prefetchIndiaCitiesFromAPI();
 
-    // Auto-fetch dynamic UHID sequence from PostgreSQL backend API
+    // Fetch dynamic UHID sequence from Backend API via apiClient
     let userTenantId = '';
     if (typeof window !== 'undefined') {
       try {
@@ -49,18 +51,25 @@ export default function PatientRegistrationPage() {
         }
       } catch (e) {}
     }
-    const uhidUrl = userTenantId 
-      ? `http://localhost:58781/api/Aashora/GenerateUHID?tenantid=${userTenantId}`
-      : 'http://localhost:58781/api/Aashora/GenerateUHID';
 
-    fetch(uhidUrl)
-      .then((res) => res.json())
+    apiClient.get(API_ENDPOINTS.GENERATE_UHID, { params: userTenantId ? { tenantid: userTenantId } : {} })
       .then((data) => {
         if (data && data.uhid) {
           setGeneratedUHID(data.uhid);
         }
       })
       .catch(() => {});
+
+    // Fetch live registered patients directly from DB via API (SP: getregisterdpatientapi)
+    patientService.getAllPatients()
+      .then((livePatients) => {
+        if (livePatients && livePatients.length > 0) {
+          setDbPatients(livePatients);
+        }
+      })
+      .catch((err) => {
+        console.warn('Live DB patients fetch warning:', err);
+      });
   }, []);
 
   // Search & Date Filter States (Default to Today)
@@ -745,10 +754,18 @@ export default function PatientRegistrationPage() {
     setIsFinalized(true);
   };
 
-  // Filter Registered Patients Roster (Doctor Data Isolation + Date Filter)
+  // Filter Registered Patients Roster (Doctor Data Isolation + Date Filter + Sanitize Mock Records)
+  const MOCK_IDS = new Set(['REG-1003', 'REG-1004', 'REG-1005', 'REG-1007']);
+  const MOCK_NAMES = new Set(['rrrrr', 'test2', 'tes3', 'test4', 'test patient']);
+
   const filteredRoster = (patients || [])
     .filter((p) => p.isFinalized !== false)
     .filter((p) => {
+      const regId = (p.regId || p.uhid || '').toUpperCase();
+      const fname = (p.fullname || p.firstname || '').toLowerCase();
+      if (MOCK_IDS.has(regId)) return false;
+      if (MOCK_NAMES.has(fname) || fname.includes('rrrrr')) return false;
+
       const docRef = (p.doctorRef || '').toLowerCase();
       const curDocName = (currentUser?.doctorName || '').toLowerCase();
       const curFirstName = (currentUser?.doctorName || '').replace(/^dr\.\s*/i, '').trim().split(' ')[0].toLowerCase();

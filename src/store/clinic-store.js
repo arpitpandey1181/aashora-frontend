@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { apiClient } from '@/lib/api-client';
+import { API_ENDPOINTS } from '@/lib/constants';
 
 const STORAGE_KEY = 'aashora-clinic-store-v11';
 
@@ -182,12 +184,28 @@ let globalStoreState = {
 
 const listeners = new Set();
 
+function sanitizePatients(patientsList) {
+  if (!Array.isArray(patientsList)) return [];
+  const MOCK_IDS = new Set(['REG-1003', 'REG-1004', 'REG-1005', 'REG-1007']);
+  const MOCK_NAMES = new Set(['rrrrr', 'test2', 'tes3', 'test4', 'test patient']);
+  return patientsList.filter(p => {
+    const regId = (p.regId || p.uhid || '').toUpperCase();
+    const fname = (p.fullname || p.firstname || '').toLowerCase();
+    if (MOCK_IDS.has(regId)) return false;
+    if (MOCK_NAMES.has(fname) || fname.includes('rrrrr')) return false;
+    return true;
+  });
+}
+
 function getSavedStore() {
   if (typeof window === 'undefined') return globalStoreState;
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     if (data) {
       const parsed = JSON.parse(data);
+      if (parsed.patients) {
+        parsed.patients = sanitizePatients(parsed.patients);
+      }
       globalStoreState = { ...globalStoreState, ...parsed };
     }
   } catch (e) {
@@ -215,6 +233,11 @@ export function useClinicStore() {
     listeners.add(setState);
     return () => listeners.delete(setState);
   }, []);
+
+  const setDbPatients = (newPatients) => {
+    const sanitized = sanitizePatients(newPatients);
+    saveStore({ patients: sanitized });
+  };
 
   // Add Registered Patient & Auto-Create Payment Receipt
   const addPatient = (patData) => {
@@ -256,24 +279,17 @@ export function useClinicStore() {
     const formattedDDMMYYYY = `${ddStr}/${mmStr}/${yyyyStr}`;
     const formattedEntDateTime = `${formattedDDMMYYYY} ${String(todayObj.getHours()).padStart(2, '0')}:${String(todayObj.getMinutes()).padStart(2, '0')}:${String(todayObj.getSeconds()).padStart(2, '0')}`;
 
-    // Async Save to PostgreSQL Backend API
+    // Async Save to Backend API via apiClient
     if (typeof window !== 'undefined') {
       try {
-        fetch('http://localhost:58781/api/Aashora/SavePatientRegistration', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            ...(activeTenantId ? { 'X-Tenant-ID': activeTenantId } : {})
-          },
-          body: JSON.stringify({
-            firstname: newPat.fullname,
-            mobileno: newPat.mobileno,
-            dob: newPat.dob,
-            uhid: generatedUHID,
-            tenantid: activeTenantId,
-            regdate: patData.regdate || formattedDDMMYYYY,
-            entdatetime: formattedEntDateTime
-          })
+        apiClient.post(API_ENDPOINTS.SAVE_PATIENT, {
+          firstname: newPat.fullname,
+          mobileno: newPat.mobileno,
+          dob: newPat.dob,
+          uhid: generatedUHID,
+          tenantid: activeTenantId,
+          regdate: patData.regdate || formattedDDMMYYYY,
+          entdatetime: formattedEntDateTime
         }).catch(() => {});
       } catch (e) {}
     }
@@ -593,6 +609,7 @@ export function useClinicStore() {
     paymentModesMaster: state.paymentModesMaster || DEFAULT_PAYMENT_MODES_MASTER,
     serviceChargesMaster: state.serviceChargesMaster || DEFAULT_SERVICE_CHARGES_MASTER,
     prescriptionFieldControls: state.prescriptionFieldControls || DEFAULT_PRESCRIPTION_CONTROLS,
+    setDbPatients,
     addPatient,
     sendForVitals,
     saveVitalsAndCheckIn,
