@@ -11,6 +11,7 @@ import { UserPlus, Search, Check, DollarSign, CreditCard, Calendar, User, ArrowL
 import { useClinicStore, DOCTORS_MASTER_LIST } from '@/store/clinic-store';
 import { searchIndiaLocationsInstant, prefetchIndiaCitiesFromAPI } from '@/config/india-location-data';
 import { formatDate } from '@/lib/utils';
+import { patientService } from '@/services/patientService';
 import { toast } from 'sonner';
 
 const TITLE_OPTIONS = ['Mr.', 'Mrs.', 'Miss', 'Master', 'Dr.', 'Prof.'];
@@ -512,8 +513,8 @@ export default function PatientRegistrationPage() {
     toast.info('Cleared edit mode.');
   };
 
-  // Step 1: Save Patient Details (Unlocks Payment & Reports Grid below)
-  const handleSavePatientDetails = (e) => {
+  // Step 1: Save Patient Details (Saves to MySQL DB via API & Unlocks Payment & Reports Grid below)
+  const handleSavePatientDetails = async (e) => {
     e.preventDefault();
 
     // Mandatory First Name & Last Name Validation
@@ -539,12 +540,40 @@ export default function PatientRegistrationPage() {
       return;
     }
 
-    const nextId = (patients || []).length > 0 ? Math.max(...patients.map((p) => p.gsspatid)) + 1 : 1001;
-    const tempRegId = editingPatientId ? savedPatient?.regId : `REG-${nextId}`;
+    let assignedGssuhid = (patients || []).length > 0 ? Math.max(...patients.map((p) => p.gsspatid)) + 1 : 1001;
+    let assignedUhid = editingPatientId ? savedPatient?.regId : `REG-${assignedGssuhid}`;
+
+    // Call Backend .NET API -> MySQL DB Save Registration
+    try {
+      const apiRes = await patientService.savePatient({
+        title,
+        firstName: firstName.trim(),
+        middleName: middleName.trim(),
+        lastName: lastName.trim(),
+        fullname,
+        gender,
+        dob,
+        mobileno,
+        cityid: 1,
+        locationid: 2,
+        financialyear: '2526',
+        orgid: '11',
+      });
+
+      if (apiRes && (apiRes.status === 'SUCCESS' || apiRes.gssuhid)) {
+        const dbGssuhid = apiRes.gssuhid || apiRes.registrationDetails?.[0]?.pgssuhid;
+        const dbUhid = apiRes.uhid || apiRes.registrationDetails?.[0]?.puhid;
+        if (dbGssuhid && dbGssuhid !== '0') assignedGssuhid = Number(dbGssuhid);
+        if (dbUhid && dbUhid !== '0') assignedUhid = dbUhid;
+        toast.success(`Saved to MySQL Database! UHID: ${assignedUhid}`);
+      }
+    } catch (apiErr) {
+      console.warn('Backend API save warning (saving locally):', apiErr);
+    }
 
     const tempSavedObj = {
-      gsspatid: editingPatientId || nextId,
-      regId: tempRegId,
+      gsspatid: editingPatientId || assignedGssuhid,
+      regId: assignedUhid,
       title,
       firstName: firstName.trim(),
       middleName: middleName.trim(),
@@ -608,7 +637,7 @@ export default function PatientRegistrationPage() {
   };
 
   // Finalize Registration & Payment Completion (STRICT DUE AMOUNT DOCTOR REF VALIDATION!)
-  const handleFinalizeRegistration = () => {
+  const handleFinalizeRegistration = async () => {
     if (!savedPatient) return;
 
     // STRICT CHECK: IF DUE AMOUNT > 0, DOCTOR REFERENCE MUST NOT BE EMPTY!
@@ -618,6 +647,32 @@ export default function PatientRegistrationPage() {
     }
 
     const finalWhatsApp = isSameWhatsApp ? mobileno : whatsappno;
+    let finalUhid = savedPatient.regId;
+
+    // Send HTTP POST to Backend .NET API -> MySQL DB
+    try {
+      const apiRes = await patientService.savePatient({
+        title,
+        firstName: firstName.trim(),
+        middleName: middleName.trim(),
+        lastName: lastName.trim(),
+        fullname,
+        gender,
+        dob,
+        mobileno,
+        cityid: 1,
+        locationid: 2,
+        financialyear: '2526',
+        orgid: '11',
+      });
+
+      if (apiRes && (apiRes.status === 'SUCCESS' || apiRes.gssuhid)) {
+        const dbUhid = apiRes.uhid || apiRes.registrationDetails?.[0]?.puhid;
+        if (dbUhid && dbUhid !== '0') finalUhid = dbUhid;
+      }
+    } catch (apiErr) {
+      console.warn('Backend API finalize warning:', apiErr);
+    }
 
     if (editingPatientId) {
       // UPDATE EXISTING PATIENT
@@ -645,11 +700,11 @@ export default function PatientRegistrationPage() {
         paymentNote,
         isFinalized: true,
       });
-      toast.success(`Updated patient details & payment for ${fullname} (${savedPatient.regId})!`);
+      toast.success(`Updated patient details & payment for ${fullname} (${finalUhid})!`);
     } else {
       // CREATE NEW FINALIZED PATIENT (Now added to Roster Store & Payments)
       const newPat = addPatient({
-        uhid: generatedUHID,
+        uhid: finalUhid,
         title,
         fullname,
         mobileno,
@@ -679,7 +734,7 @@ export default function PatientRegistrationPage() {
       });
 
       setSavedPatient(newPat);
-      toast.success(`Registration & Payment completed for ${newPat.fullname}! Reg ID: ${newPat.regId}.`, {
+      toast.success(`Registration & Payment completed for ${newPat.fullname}! Reg ID / UHID: ${finalUhid}.`, {
         action: {
           label: '📅 Book Slot Now',
           onClick: () => router.push(`/appointments/book?patId=${newPat.gsspatid}`),

@@ -29,19 +29,28 @@ export const patientService = {
   // Save or Update patient (matches patregistrationmodel.cs)
   savePatient: async (patientData) => {
     try {
+      let formattedDob = '01/01/1990';
+      if (patientData.dob) {
+        if (patientData.dob.includes('-')) {
+          formattedDob = patientData.dob.split('-').reverse().join('/');
+        } else {
+          formattedDob = patientData.dob;
+        }
+      }
+
       const payload = {
         initialid: patientData.title === 'Mrs.' ? 2 : patientData.title === 'Miss' ? 3 : 1,
-        firstname: patientData.firstName || patientData.firstname || patientData.fullname || '',
-        midname: patientData.middleName || patientData.midname || '',
-        lastname: patientData.lastName || patientData.lastname || '',
+        firstname: (patientData.firstName || patientData.firstname || patientData.fullname || '').toString().trim(),
+        midname: (patientData.middleName || patientData.midname || '').toString().trim(),
+        lastname: (patientData.lastName || patientData.lastname || '').toString().trim(),
+        fathername: (patientData.fathername || patientData.fhname || '').toString().trim(),
         genderid: patientData.gender === 'Female' ? 2 : patientData.gender === 'Other' ? 3 : 1,
-        dob: patientData.dob ? patientData.dob.split('-').reverse().join('/') : '01/01/1990',
-        mobileno: parseInt(patientData.mobileno) || 0,
+        dob: formattedDob,
+        mobileno: Number(patientData.mobileno) || 0,
         emailid: patientData.emailid || '',
         cityid: patientData.cityid || 1,
         locationid: patientData.locationid || 2,
         maritalstatusid: patientData.maritalstatusid || 1,
-        fathername: patientData.fathername || patientData.fhname || '',
         financialyear: patientData.financialyear || '2526',
         orgid: patientData.orgid || '11',
         IsNewReg: '1'
