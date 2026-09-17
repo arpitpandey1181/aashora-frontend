@@ -40,14 +40,22 @@ export default function FrontDeskInboxPage() {
 
       window.addEventListener('softycare_location_changed', handleLocChange);
 
-      // Live DB Patients fetch from backend API
-      patientService.getAllPatients()
-        .then((livePatients) => {
-          if (livePatients && livePatients.length > 0) {
-            setDbPatients(livePatients);
+      // Live DB Front Desk Inbox fetch from backend API (SP: getfrontdeskinboxdata)
+      patientService.getFrontDeskInbox()
+        .then((inboxList) => {
+          if (inboxList && inboxList.length > 0) {
+            setDbPatients(inboxList);
+          } else {
+            patientService.getAllPatients().then((livePats) => {
+              if (livePats && livePats.length > 0) setDbPatients(livePats);
+            }).catch(() => {});
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          patientService.getAllPatients().then((livePats) => {
+            if (livePats && livePats.length > 0) setDbPatients(livePats);
+          }).catch(() => {});
+        });
 
       return () => window.removeEventListener('softycare_location_changed', handleLocChange);
     }
@@ -57,18 +65,27 @@ export default function FrontDeskInboxPage() {
   const loggedInLocation = activeLocation?.locationname || userInfo?.locationname || userInfo?.locationName || 'MAIN BRANCH';
   const loggedInRole = userInfo?.proftype || userInfo?.designation || currentUser?.role || 'CONSULTANT DOCTOR';
 
-  const handleSendForVitals = (patId, name) => {
+  const handleSendForVitals = async (patId, name) => {
     sendForVitals(patId);
+    try {
+      await patientService.saveCheckInOut({ gssuhid: Number(patId), status: 'Pending Vitals' });
+    } catch (e) {}
     toast.success(`Patient ${name} routed to Vitals Inbox! Status updated to Pending Vitals.`);
   };
 
-  const handleCheckInPatient = (patId, name) => {
+  const handleCheckInPatient = async (patId, name) => {
     checkInPatient(patId);
+    try {
+      await patientService.saveCheckInOut({ gssuhid: Number(patId), status: 'Checked-In' });
+    } catch (e) {}
     toast.success(`Patient ${name} Checked-In! Patient is now visible in Doctor Prescription Queue.`);
   };
 
-  const handleCheckOutPatient = (patId, name) => {
+  const handleCheckOutPatient = async (patId, name) => {
     checkOutPatient(patId);
+    try {
+      await patientService.saveCheckInOut({ gssuhid: Number(patId), status: 'Checked-Out' });
+    } catch (e) {}
     toast.success(`Patient ${name} Checked-Out!`);
   };
 

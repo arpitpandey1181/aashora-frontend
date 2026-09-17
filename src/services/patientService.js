@@ -108,4 +108,56 @@ export const patientService = {
       throw error;
     }
   },
+
+  // Fetch Front Desk Inbox data directly from .NET API (SP: getfrontdeskinboxdata)
+  getFrontDeskInbox: async (filters = {}) => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.GET_FRONTDESK_INBOX, { params: filters });
+      let rawList = [];
+      if (response && response.inboxData) {
+        if (Array.isArray(response.inboxData)) {
+          rawList = response.inboxData;
+        } else if (response.inboxData.Table && Array.isArray(response.inboxData.Table)) {
+          rawList = response.inboxData.Table;
+        } else if (response.inboxData.Tables && response.inboxData.Tables[0]) {
+          rawList = response.inboxData.Tables[0];
+        }
+      }
+      return rawList.map((row, idx) => ({
+        gsspatid: Number(row.gssuhid || row.gsspatid || (idx + 1001)),
+        regId: row.uhid || `REG-${row.gssuhid || (idx + 1001)}`,
+        title: row.initialname || row.title || 'Mr.',
+        fullname: row.patientname || row.fullname || `${row.firstname || ''} ${row.lastname || ''}`.trim(),
+        mobileno: row.mobileno || '',
+        whatsappno: row.whatsappno || row.mobileno || '',
+        dob: row.dob || '',
+        ageDisplay: row.age ? `${row.age} Yrs` : '',
+        age: Number(row.age) || 30,
+        gender: row.gendername || 'Male',
+        city: row.cityname || '',
+        address: row.address || '',
+        remark: row.remark || '',
+        visitType: row.visittype || 'First Visit',
+        doctorRef: row.doctorname || row.doctorRef || 'General',
+        status: row.status || 'Registered',
+        checkInStatus: row.checkinstatus || row.checkInStatus || 'Registered',
+        registrationdate: row.regdatetime || new Date().toISOString().split('T')[0],
+        isFinalized: true
+      }));
+    } catch (error) {
+      console.error('Error fetching front desk inbox:', error);
+      return [];
+    }
+  },
+
+  // Save Check-In / Check-Out status directly to DB (SP: updatepatopdvisitchkin)
+  saveCheckInOut: async (checkInData) => {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.SAVE_CHECK_IN_OUT, checkInData);
+      return response;
+    } catch (error) {
+      console.error('Error updating check-in status:', error);
+      throw error;
+    }
+  }
 };

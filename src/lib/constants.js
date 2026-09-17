@@ -8,6 +8,8 @@ export const API_ENDPOINTS = {
   GET_PATIENT_BY_ID: '/Aashora/GetOrgRegPat',
   SAVE_PATIENT: '/Aashora/SavePatientRegistration',
   GENERATE_UHID: '/Aashora/GenerateUHID',
+  GET_FRONTDESK_INBOX: '/Aashora/GetFrontDeskInbox',
+  SAVE_CHECK_IN_OUT: '/Aashora/SaveCheckInOut',
 
   // Appointments
   GET_APPOINTMENTS: '/Aashora/GetAppointments',
