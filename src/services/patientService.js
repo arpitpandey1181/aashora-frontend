@@ -1,6 +1,26 @@
 import { apiClient } from '@/lib/api-client';
 import { API_ENDPOINTS } from '@/lib/constants';
 
+function formatDateToYYYYMMDD(rawStr) {
+  if (!rawStr) return new Date().toISOString().split('T')[0];
+  const str = rawStr.toString().trim();
+  if (str.includes('/')) {
+    const parts = str.split(' ')[0].split('/');
+    if (parts.length === 3) {
+      if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+  }
+  if (str.includes('-')) {
+    const parts = str.split(' ')[0].split('T')[0].split('-');
+    if (parts.length === 3) {
+      if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+  }
+  return str.split(' ')[0];
+}
+
 export const patientService = {
   // Fetch all patients from .NET AashoraAPIController (SP: getregisterdpatientapi)
   getAllPatients: async (searchQuery = '') => {
@@ -10,13 +30,16 @@ export const patientService = {
       });
 
       let rawList = [];
-      if (response && response.patients) {
-        if (Array.isArray(response.patients)) {
-          rawList = response.patients;
-        } else if (response.patients.Table && Array.isArray(response.patients.Table)) {
-          rawList = response.patients.Table;
-        } else if (response.patients.Tables && response.patients.Tables[0]) {
-          rawList = response.patients.Tables[0];
+      const ds = response?.patients || response?.data || response;
+      if (ds) {
+        if (Array.isArray(ds)) {
+          rawList = ds;
+        } else if (ds.Table && Array.isArray(ds.Table)) {
+          rawList = ds.Table;
+        } else if (ds.Table1 && Array.isArray(ds.Table1)) {
+          rawList = ds.Table1;
+        } else if (ds.Tables && ds.Tables[0]) {
+          rawList = ds.Tables[0];
         }
       }
 
@@ -41,7 +64,7 @@ export const patientService = {
         doctorRef: row.doctorname || row.doctorRef || 'General',
         status: row.status || 'Registered',
         checkInStatus: row.checkInStatus || 'Registered',
-        registrationdate: row.regdatetime || row.entdatetime || new Date().toISOString().split('T')[0],
+        registrationdate: formatDateToYYYYMMDD(row.regdatetime || row.entdatetime || row.regdate),
         isFinalized: true
       }));
     } catch (error) {
@@ -141,7 +164,7 @@ export const patientService = {
         doctorRef: row.doctorname || row.doctorRef || 'General',
         status: row.status || 'Registered',
         checkInStatus: row.checkinstatus || row.checkInStatus || 'Registered',
-        registrationdate: row.regdatetime || new Date().toISOString().split('T')[0],
+        registrationdate: formatDateToYYYYMMDD(row.regdatetime || row.entdatetime || row.regdate),
         isFinalized: true
       }));
     } catch (error) {
