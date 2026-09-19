@@ -43,15 +43,18 @@ export default function FrontDeskInboxPage() {
       // Live DB Front Desk Inbox fetch from backend API (SP: getfrontdeskinboxdata)
       patientService.getFrontDeskInbox()
         .then((inboxList) => {
+          console.log('[FrontDesk Live API Inbox Received]', inboxList);
           if (inboxList && inboxList.length > 0) {
             setDbPatients(inboxList);
           } else {
             patientService.getAllPatients().then((livePats) => {
+              console.log('[FrontDesk Fallback getAllPatients Received]', livePats);
               if (livePats && livePats.length > 0) setDbPatients(livePats);
             }).catch(() => {});
           }
         })
-        .catch(() => {
+        .catch((err) => {
+          console.error('[FrontDesk Inbox API Error]', err);
           patientService.getAllPatients().then((livePats) => {
             if (livePats && livePats.length > 0) setDbPatients(livePats);
           }).catch(() => {});
@@ -91,7 +94,7 @@ export default function FrontDeskInboxPage() {
 
   const filteredPatients = (patients || []).filter((p) => {
     if (activeLocation?.locationid && p.locationid) {
-      if (String(p.locationid) !== String(activeLocation.locationid)) {
+      if (String(p.locationid) !== String(activeLocation.locationid) && Number(p.locationid) !== 0) {
         return false;
       }
     }
@@ -103,9 +106,12 @@ export default function FrontDeskInboxPage() {
     const belongsToDoctor =
       currentUser?.username === 'admin' ||
       !p.doctorRef ||
+      p.doctorRef === 'General Consultant' ||
+      docRef === 'general consultant' ||
+      docRef === 'general' ||
       docRef.includes(curDocName) ||
       docRef.includes(curFirstName) ||
-      curDocName.includes(docRef);
+      (curDocName && curDocName.includes(docRef));
     if (!belongsToDoctor) return false;
 
     const matchesSearch =
@@ -116,6 +122,8 @@ export default function FrontDeskInboxPage() {
 
     return matchesSearch;
   });
+
+  console.log('[FrontDesk Roster Rendered Count]', filteredPatients.length, filteredPatients);
 
   return (
     <div className="space-y-6">
